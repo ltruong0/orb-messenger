@@ -3,14 +3,30 @@ kind: Kustomization
 namespace: orb
 resources:
   - ../../base
-# secrets/passwd is gitignored. Generate it with `make mosquitto-passwd`
-# (reads MQTT_HUB_PASSWORD / MQTT_ORB_PASSWORD from .env).
+  - hub-ingress.yaml
+images:
+  - name: ghcr.io/ltruong0/orb-messenger/msg-hub
+    newTag: 0.4.0
+configMapGenerator:
+  - name: hub-config
+    literals:
+      - MQTT_HOST=mosquitto.orb.svc
+      - MQTT_PORT=1883
+      - MQTT_USER=msg-hub
+      - MEDIA_BASE_URL=http://orb.marcellolab.com
+      - HUB_TZ=CST6CDT,M3.2.0,M11.1.0
+# secrets/ is gitignored. `make mosquitto-passwd` writes passwd and
+# `make hub-secrets` writes hub.env (HUB_PIN, SESSION_SECRET, MQTT_PASSWORD), both from .env.
 secretGenerator:
   - name: mosquitto-passwd
     files:
       - passwd=secrets/passwd
+  - name: hub-secret
+    envs:
+      - secrets/hub.env
 generatorOptions:
   disableNameSuffixHash: true
 patches:
   - path: mosquitto-service-lb.yaml
   - path: mosquitto-pvc-storageclass.yaml
+  - path: hub-pvc-storageclass.yaml

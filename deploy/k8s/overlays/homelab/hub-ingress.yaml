@@ -1,0 +1,44 @@
+# Phones: HTTPS via Traefik's default TLSStore (mkcert wildcard *.marcellolab.com).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hub
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: orb.marcellolab.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hub
+                port:
+                  number: 8080
+  tls:
+    - hosts: ["orb.marcellolab.com"]
+---
+# Orbs: plain HTTP for /media only (no TLS on the ESP32 in v1, decisions 7).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hub-media
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: orb.marcellolab.com
+      http:
+        paths:
+          - path: /media
+            pathType: Prefix
+            backend:
+              service:
+                name: hub
+                port:
+                  number: 8080

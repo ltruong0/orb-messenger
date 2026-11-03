@@ -71,3 +71,7 @@ Short records. Add new ones at the bottom.
 34. **`GET /api/users` is public.** The login screen needs the picker before a session exists, and the only thing it reveals is two first names on a LAN-only app. Everything else under `/api` still needs the cookie.
 
 35. **Service worker caches the shell and sticker PNGs only.** `/api/*` is network-only (SSE, auth), photos are fetched normally. Stickers are content-addressed by the manifest's sha256 anyway. It registers only in a secure context, which on the LAN means `https://orb.marcellolab.com` with the mkcert root trusted on the phone (deploy.md).
+
+36. **Image tag = hub version, pinned in the overlay.** (2026-11-03) `make image-push` tags with `version` from `hub/pyproject.toml`; `make set-image` writes that into `overlays/homelab/kustomization.yaml`, which is committed. No `:latest`, no mutable tags, and `git log` of the overlay is the deploy history. The GHCR pull secret is created by hand (one PAT, one namespace) rather than generated from a file, so no token ever sits in the working tree.
+
+37. **`users.yaml` ships in the image.** Two names that change once a year don't justify a ConfigMap mount in v1; `USERS_FILE` is there if that changes.

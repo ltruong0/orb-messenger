@@ -4,6 +4,7 @@ namespace: orb
 resources:
   - namespace.yaml
   - mosquitto.yaml
+  - hub.yaml
 configMapGenerator:
   - name: mosquitto-config
     files:

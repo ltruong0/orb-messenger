@@ -1,10 +1,10 @@
 # Orb Messenger. Targets listed in CLAUDE.md; add them as each phase lands.
 # Python tooling runs through uv (pins Python 3.12 + locked deps).
-.PHONY: contract-test broker-test broker-check sim-test hub-test test lint fmt mosquitto-passwd sim sim-ui hub-run image fonts deploy deploy-diff
+.PHONY: contract-test broker-test broker-check sim-test hub-test test lint fmt mosquitto-passwd hub-secrets sim sim-ui hub-run image image-push set-image fonts deploy deploy-diff deploy-status
 
 UV ?= uv
 IMAGE ?= ghcr.io/ltruong0/orb-messenger/msg-hub
-TAG ?= dev
+TAG ?= $(shell sed -n 's/^version = "\(.*\)"/\1/p' hub/pyproject.toml)
 EMOJI_FONT_URL ?= https://github.com/googlefonts/noto-emoji/raw/v2.047/fonts/NotoColorEmoji.ttf
 EMOJI_FONT_CACHE ?= $(HOME)/.cache/orb-messenger/fonts/NotoColorEmoji.ttf
 KUSTOMIZE_DIR ?= deploy/k8s/overlays/homelab
@@ -41,8 +41,15 @@ hub-run:                  ## run msg-hub locally against MQTT_HOST (state in hub
 	  MEDIA_BASE_URL=$${MEDIA_BASE_URL:-http://$$(ipconfig getifaddr en0 2>/dev/null || hostname):8080} \
 	  $(UV) run msg-hub
 
-image:                    ## build the msg-hub container image (context = repo root)
+image:                    ## build the msg-hub container image (context = repo root; TAG = hub version)
 	docker build -f hub/Dockerfile -t $(IMAGE):$(TAG) .
+
+image-push: image         ## push it to GHCR (docker login ghcr.io first)
+	docker push $(IMAGE):$(TAG)
+
+set-image:                ## pin the homelab overlay to $(TAG)
+	sed -i '' 's|^\(    newTag: \).*|\1$(TAG)|' $(KUSTOMIZE_DIR)/kustomization.yaml
+	@grep -n newTag $(KUSTOMIZE_DIR)/kustomization.yaml
 
 fonts:                    ## fetch NotoColorEmoji.ttf for local sticker rendering (~10 MB, one-off)
 	@mkdir -p $(dir $(EMOJI_FONT_CACHE))
@@ -67,8 +74,21 @@ mosquitto-passwd:         ## write the gitignored passwd file for the homelab ov
 	  $(UV) run python tools/mosquitto_passwd.py $(KUSTOMIZE_DIR)/secrets/passwd \
 	    "msg-hub=$$MQTT_HUB_PASSWORD" "orb=$$MQTT_ORB_PASSWORD"
 
+hub-secrets:              ## write the gitignored hub.env for the homelab overlay from .env
+	@test -f .env || { echo ".env missing"; exit 1; }
+	@set -a; . ./.env; set +a; \
+	  test -n "$$HUB_PIN" -a -n "$$SESSION_SECRET" -a -n "$$MQTT_HUB_PASSWORD" || { echo "set HUB_PIN, SESSION_SECRET, MQTT_HUB_PASSWORD in .env"; exit 1; }; \
+	  umask 077; printf 'HUB_PIN=%s\nSESSION_SECRET=%s\nMQTT_PASSWORD=%s\n' "$$HUB_PIN" "$$SESSION_SECRET" "$$MQTT_HUB_PASSWORD" > $(KUSTOMIZE_DIR)/secrets/hub.env
+	@echo "wrote $(KUSTOMIZE_DIR)/secrets/hub.env"
+
+deploy-status:            ## rollout status + pods in the orb namespace
+	kubectl -n orb rollout status deploy/hub --timeout=120s
+	kubectl -n orb get pods,svc,ingress,pvc
+
 deploy-diff:
 	kubectl diff -k $(KUSTOMIZE_DIR) || true
 
-deploy:                   ## kubectl apply -k deploy/k8s/overlays/homelab
+deploy:                   ## kubectl apply -k deploy/k8s/overlays/homelab (needs secrets/passwd + secrets/hub.env)
+	@test -f $(KUSTOMIZE_DIR)/secrets/passwd || { echo "run make mosquitto-passwd first"; exit 1; }
+	@test -f $(KUSTOMIZE_DIR)/secrets/hub.env || { echo "run make hub-secrets first"; exit 1; }
 	kubectl apply -k $(KUSTOMIZE_DIR)

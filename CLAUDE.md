@@ -35,7 +35,11 @@ make hub-run         # run msg-hub locally against MQTT_HOST from .env (state in
 make sim ID=orb-sim1 # run one orb-sim at the terminal
 make sim-ui          # orb-sim --web: two orbs with mock 466 px screens at http://localhost:8090 (IDS=, PORT=)
 make image           # docker build hub/Dockerfile from the repo root (TAG=dev)
-make deploy          # kubectl apply -k deploy/k8s/overlays/homelab
+make hub-secrets     # write the gitignored hub.env (HUB_PIN, SESSION_SECRET, MQTT_PASSWORD) from .env
+make image-push      # build + push ghcr.io/ltruong0/orb-messenger/msg-hub:<hub version>
+make set-image       # pin that tag in the homelab overlay
+make deploy          # kubectl apply -k deploy/k8s/overlays/homelab (mosquitto + hub + ingress)
+make deploy-status   # rollout status + pods/svc/ingress/pvc in ns orb
 pio run -d firmware -t upload   # flash an orb
 ```
 
