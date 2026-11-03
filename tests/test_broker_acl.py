@@ -8,7 +8,7 @@ import threading
 
 import paho.mqtt.client as mqtt
 import pytest
-from conftest import Broker
+from orbtest import Broker
 
 TIMEOUT = 3.0
 

@@ -9,7 +9,8 @@ import json
 from typing import Any
 
 import aiomqtt
-from conftest import Broker
+
+from .broker import Broker
 
 
 class HubProbe:
