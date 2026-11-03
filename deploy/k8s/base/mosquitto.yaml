@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mosquitto-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto
+spec:
+  # In-cluster: mosquitto.orb.svc:1883. The homelab overlay turns this into a
+  # LoadBalancer so orbs reach it as mqtt.<domain>:1883.
+  type: ClusterIP
+  selector:
+    app: mosquitto
+  ports:
+    - name: mqtt
+      port: 1883
+      targetPort: mqtt
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      securityContext:
+        runAsUser: 1883
+        runAsGroup: 1883
+        fsGroup: 1883
+        runAsNonRoot: true
+      initContainers:
+        # Mosquitto 2.x warns (and future versions refuse) when the acl or
+        # password file is world-readable or not owned by its uid. ConfigMap
+        # and Secret mounts are root-owned symlinks, so copy them into an
+        # emptyDir with the right owner and mode first.
+        - name: fix-perms
+          image: eclipse-mosquitto:2.0.22
+          command:
+            - sh
+            - -ec
+            - |
+              mkdir -p /etc-work/config /etc-work/secret
+              cp /src/config/mosquitto.conf /src/config/aclfile /etc-work/config/
+              cp /src/secret/passwd /etc-work/secret/passwd
+              chown -R 1883:1883 /etc-work
+              chmod 0700 /etc-work/config /etc-work/secret
+              chmod 0600 /etc-work/config/* /etc-work/secret/*
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+          volumeMounts:
+            - name: config-src
+              mountPath: /src/config
+              readOnly: true
+            - name: passwd-src
+              mountPath: /src/secret
+              readOnly: true
+            - name: etc
+              mountPath: /etc-work
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto:2.0.22
+          ports:
+            - name: mqtt
+              containerPort: 1883
+          readinessProbe:
+            tcpSocket:
+              port: mqtt
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: mqtt
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: etc
+              mountPath: /mosquitto/config
+              subPath: config
+            - name: etc
+              mountPath: /mosquitto/secret
+              subPath: secret
+            - name: data
+              mountPath: /mosquitto/data
+      volumes:
+        - name: config-src
+          configMap:
+            name: mosquitto-config
+        - name: passwd-src
+          secret:
+            secretName: mosquitto-passwd
+            defaultMode: 0440
+        - name: etc
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+        - name: data
+          persistentVolumeClaim:
+            claimName: mosquitto-data

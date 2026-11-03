@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: orb
+resources:
+  - ../../base
+# secrets/passwd is gitignored. Generate it with `make mosquitto-passwd`
+# (reads MQTT_HUB_PASSWORD / MQTT_ORB_PASSWORD from .env).
+secretGenerator:
+  - name: mosquitto-passwd
+    files:
+      - passwd=secrets/passwd
+generatorOptions:
+  disableNameSuffixHash: true
+patches:
+  - path: mosquitto-service-lb.yaml
+  - path: mosquitto-pvc-storageclass.yaml

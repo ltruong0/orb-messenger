@@ -1,0 +1,8 @@
+# k3s ServiceLB exposes 1883 on the node IP (192.168.40.129). DNS:
+# mqtt.marcellolab.com -> 192.168.40.129 (A record in Technitium).
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto
+spec:
+  type: LoadBalancer
