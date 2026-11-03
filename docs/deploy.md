@@ -30,7 +30,7 @@ ACL behaviour worth knowing: Mosquitto 2.x **grants** a SUBSCRIBE to a topic the
 
 ## Ingress
 
-- `https://orb.marcellolab.com/` → `hub:8080` for phones. TLS comes for free from Traefik's default `TLSStore` (`kube-system/marcellolab-tls`, an mkcert wildcard for `*.marcellolab.com`, valid to 2028-01). Phones must trust the mkcert root CA for the PWA to be installable. Ingress annotations as the other lab apps: `router.entrypoints: websecure`, `router.tls: "true"`. DNS: A record `orb.marcellolab.com → 192.168.40.129`.
+- `https://orb.marcellolab.com/` → `hub:8080` for phones. TLS comes for free from Traefik's default `TLSStore` (`kube-system/marcellolab-tls`, an mkcert wildcard for `*.marcellolab.com`, valid to 2028-01). Phones must trust the mkcert root CA for the PWA to be installable (service worker + "Add to Home Screen"); without it the page still works over HTTPS with a warning or over plain HTTP. Ingress annotations as the other lab apps: `router.entrypoints: websecure`, `router.tls: "true"`. DNS: A record `orb.marcellolab.com → 192.168.40.129`.
 - `http://orb.marcellolab.com/media/*` → `hub:8080` **without** the HTTPS redirect, so orbs can fetch over plain HTTP. A second Ingress on the `web` entrypoint matching `/media`. No global redirect middleware exists in the lab today.
 - `/api/events` (SSE): disable response buffering. Traefik passes SSE through, but check that no middleware compresses it.
 

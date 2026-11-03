@@ -1,6 +1,6 @@
 # msg-hub API (v1)
 
-FastAPI. JSON in/out. All `/api/*` routes need a session cookie except `POST /api/session`. Error shape: `{"error":"<code>","detail":"..."}`.
+FastAPI. JSON in/out. All `/api/*` routes need a session cookie except `POST /api/session` and `GET /api/users`. Error shape: `{"error":"<code>","detail":"..."}`.
 
 ## Auth
 
@@ -10,7 +10,7 @@ Two-person household, LAN-only. Keep it simple:
 |---|---|---|---|
 | POST | `/api/session` | `{user, pin}` | `pin` = `HUB_PIN` secret. Sets an HttpOnly, SameSite=Lax signed cookie `orb_session` (`SESSION_SECRET`, itsdangerous timestamp signer), 1-year expiry, `Secure` when the request came over HTTPS. 401 `bad_login`. Returns the same body as `/api/me`. |
 | GET | `/api/me` | | `{id, name, home_orb}`; `home_orb` is the first active orb whose `owner` is this user, or `null` |
-| GET | `/api/users` | | `[{id, name}]` for the owner picker |
+| GET | `/api/users` | | `[{id, name}]` for the login and owner pickers. The one `/api/*` route without auth. |
 | DELETE | `/api/session` | | Log out |
 
 Missing or bad cookie → 401 `unauthorized`.

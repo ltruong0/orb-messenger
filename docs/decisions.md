@@ -63,3 +63,11 @@ Short records. Add new ones at the bottom.
 30. **Pending orbs in `to` are skipped, unknown ones are an error.** Sending to an orb that hasn't been approved yet is a UI race, not a bug; sending to an id that doesn't exist is. 422 `no_active_recipients` only when nothing is left.
 
 31. **The browser orb UI is a view on `OrbSim`, not a second orb implementation.** (2026-11-03) `orb-sim --web` runs real `OrbSim` instances (real MQTT clients, LWT, strict schema checks, NVS, sticker cache) and the page only renders their snapshot over SSE and posts taps back. Doing it in the browser with MQTT-over-WebSockets would have meant a websockets listener on Mosquitto, the orb password in the page, and a JavaScript copy of the state machine that could drift from the Python one. The screens follow `design/png/20-orb-screen-states.png`; the stickers and photos shown are the bytes the orb fetched and verified, so a hub bug in media would show up on the mock screen just like on a real one. Quiet hours (NIGHT) are still not simulated.
+
+32. **The PWA is one HTML file, one stylesheet and one script, no framework.** (2026-11-03) Four screens, a login overlay and two bottom sheets is ~350 lines of plain JS. A bundler or framework would add a build step to a repo whose other half is firmware, for no gain at this size. State lives in one object; each screen has a `render*()` that rebuilds its DOM from it.
+
+33. **Live updates refetch, they don't patch.** An SSE event tells the app *that* orbs or messages changed; the app then re-GETs the list. The lists are tiny (two people, a handful of orbs), it keeps the event payloads minimal, and it can't drift from the server.
+
+34. **`GET /api/users` is public.** The login screen needs the picker before a session exists, and the only thing it reveals is two first names on a LAN-only app. Everything else under `/api` still needs the cookie.
+
+35. **Service worker caches the shell and sticker PNGs only.** `/api/*` is network-only (SSE, auth), photos are fetched normally. Stickers are content-addressed by the manifest's sha256 anyway. It registers only in a secure context, which on the LAN means `https://orb.marcellolab.com` with the mkcert root trusted on the phone (deploy.md).

@@ -43,6 +43,7 @@ async def test_auth_required_and_login(anon: httpx.AsyncClient):
         {"id": "lee", "name": "Lee"},
         {"id": "ashleigh", "name": "Ashleigh"},
     ]
+    assert (await anon.get("/api/stickers")).status_code == 200  # still signed in
     await anon.delete("/api/session")
     assert (await anon.get("/api/me")).status_code == 401
 

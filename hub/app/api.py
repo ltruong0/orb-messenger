@@ -75,7 +75,8 @@ def build_router(hub: Hub, sessions: Sessions) -> APIRouter:
         return await _me(hub, user)
 
     @api.get("/users")
-    async def users(_: Me) -> list[dict[str, str]]:
+    async def users() -> list[dict[str, str]]:
+        """Public: the login screen needs the user picker before there is a session."""
         return [{"id": u.id, "name": u.name} for u in hub.s.users]
 
     # ---- orbs

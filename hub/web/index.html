@@ -1,4 +1,114 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F6FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16141F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Orbs">
 <title>Orb Messenger</title>
-<p>msg-hub is running. The phone app arrives in Phase 4.</p>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+<div id="login" class="overlay" hidden>
+  <form id="login-form" class="login card">
+    <div class="login-mark"></div>
+    <h1>Orb Messenger</h1>
+    <p class="muted">Who's this?</p>
+    <div id="login-users" class="seg"></div>
+    <label class="field"><span>Household PIN</span>
+      <input id="login-pin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]*" required>
+    </label>
+    <p id="login-error" class="error" hidden></p>
+    <button class="primary big" type="submit">Sign in</button>
+  </form>
+</div>
+
+<main id="app" hidden>
+
+  <!-- ============ SEND ============ -->
+  <section id="tab-send" class="screen">
+    <header><h1>Send</h1><span id="hub-pill" class="pill">connecting…</span></header>
+    <h2 class="label">To</h2>
+    <div id="to-chips" class="chips"></div>
+    <h2 class="label">Message</h2>
+    <div class="textbox">
+      <textarea id="text" maxlength="80" rows="2" placeholder="say something small"></textarea>
+      <span id="count" class="count">0/80</span>
+    </div>
+    <div id="phrases" class="chips small"></div>
+    <h2 class="label">Sticker</h2>
+    <div id="sticker-grid" class="stickers"></div>
+    <div id="photo-preview" class="photo-preview" hidden>
+      <img alt="photo to send"><button type="button" class="x" id="photo-remove" aria-label="remove photo">✕</button>
+    </div>
+    <div class="send-row">
+      <button type="button" id="photo-btn" class="secondary"><svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M5 18l5-5 3 3 3-2 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> Photo</button>
+      <input type="file" id="photo-input" accept="image/*" hidden>
+      <button type="button" id="send-btn" class="primary big">Send</button>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY ============ -->
+  <section id="tab-history" class="screen" hidden>
+    <header><h1>History</h1></header>
+    <div id="history"></div>
+    <button type="button" id="history-more" class="secondary wide" hidden>Older</button>
+  </section>
+
+  <!-- ============ ORBS ============ -->
+  <section id="tab-orbs" class="screen" hidden>
+    <header><h1>Orbs</h1></header>
+    <div id="pending"></div>
+    <h2 class="label">Paired</h2>
+    <div id="paired"></div>
+    <p id="no-orbs" class="muted" hidden>No orbs yet. Power one up on the Wi-Fi and it shows up here with a code.</p>
+  </section>
+
+  <!-- ============ STICKERS ============ -->
+  <section id="tab-stickers" class="screen" hidden>
+    <header><h1>Stickers</h1></header>
+    <form id="sticker-form" class="card">
+      <div class="seg" id="sticker-mode">
+        <button type="button" class="on" data-mode="emoji">Emoji</button>
+        <button type="button" data-mode="upload">Upload image</button>
+      </div>
+      <div class="sticker-make">
+        <div class="preview-orb"><span id="sticker-preview-emoji">💜</span><img id="sticker-preview-img" alt="" hidden></div>
+        <div class="fields">
+          <label class="field" id="emoji-field"><span>Emoji</span><input id="sticker-emoji" value="💜" autocomplete="off"></label>
+          <label class="field" id="upload-field" hidden><span>Image</span><input id="sticker-file" type="file" accept="image/*"></label>
+          <label class="field"><span>Name</span><input id="sticker-name" maxlength="32" placeholder="purple heart"></label>
+        </div>
+      </div>
+      <p class="muted small-text">The hub renders it to a 160 px PNG so every orb shows the same art, then each orb caches it.</p>
+      <p id="sticker-error" class="error" hidden></p>
+      <button class="primary big wide" type="submit">Add to library</button>
+    </form>
+    <div class="row-between">
+      <h2 class="label">Library · <span id="sticker-count">0</span></h2>
+      <a href="#" id="edit-phrases">Edit quick phrases</a>
+    </div>
+    <div id="library" class="stickers named"></div>
+  </section>
+
+  <nav id="nav">
+    <button data-tab="send"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Send</button>
+    <button data-tab="history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>History</button>
+    <button data-tab="orbs"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Orbs<span class="dot" id="orbs-dot" hidden></span></button>
+    <button data-tab="stickers"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="10" r="1.1" fill="currentColor"/><circle cx="15" cy="10" r="1.1" fill="currentColor"/></svg>Stickers</button>
+  </nav>
+</main>
+
+<div id="sheet-backdrop" class="overlay" hidden><div id="sheet" class="sheet card"></div></div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

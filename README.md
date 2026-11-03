@@ -25,7 +25,7 @@ Round ESP32-S3 screens for sending each other small messages, stickers and photo
 | `docs/decisions.md` | Why it's built this way |
 | `contracts/` | JSON Schemas, valid and invalid examples, `validate.py` (`make contract-test`) |
 | `tests/` | Broker acceptance tests against a real Mosquitto in Docker (`make broker-test`) or the cluster (`make broker-check`) |
-| `hub/` | `msg-hub`: FastAPI + aiomqtt + SQLite. `app/` (registry, pairing, fan-out, receipts, reactions, stickers, photos, SSE, PIN sessions), `tests/` (`make hub-test`), `Dockerfile` (`make image`), `users.yaml` |
+| `hub/` | `msg-hub`: FastAPI + aiomqtt + SQLite. `app/` (registry, pairing, fan-out, receipts, reactions, stickers, photos, SSE, PIN sessions), `web/` (the phone PWA: Send, History, Orbs, Stickers), `tests/` (`make hub-test`), `Dockerfile` (`make image`), `users.yaml` |
 | `tools/orb-sim/` | Orb simulator: CLI, async library and a browser UI with mock orb screens driven by the real broker (`make sim ID=orb-sim1`, `make sim-ui`, `make sim-test`) |
 | `tools/` | `mosquitto_passwd.py` (pure-Python password file generator) |
 | `deploy/k8s/` | Kustomize base (namespace, Mosquitto, conf + ACL) and the `homelab` overlay (ServiceLB, `local-path`, gitignored secrets) |
