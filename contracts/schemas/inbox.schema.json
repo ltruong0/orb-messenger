@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "orb/inbox.schema.json",
+  "title": "orb/{id}/inbox (hub → orb, retained)",
+  "type": "object",
+  "required": ["id", "from", "from_name", "type", "ts"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
+    "from": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,31}$"},
+    "from_name": {"type": "string", "minLength": 1, "maxLength": 24},
+    "type": {"enum": ["text", "sticker", "photo"]},
+    "text": {"type": "string", "minLength": 1, "maxLength": 80},
+    "sticker": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"},
+    "media": {"type": "string", "pattern": "^/media/(photos|stickers)/[A-Za-z0-9._-]+\\.(jpg|png)$"},
+    "ts": {"type": "integer", "minimum": 1700000000}
+  },
+  "allOf": [
+    {"if": {"properties": {"type": {"const": "text"}}}, "then": {"required": ["text"]}},
+    {"if": {"properties": {"type": {"const": "sticker"}}}, "then": {"required": ["sticker", "media"]}},
+    {"if": {"properties": {"type": {"const": "photo"}}}, "then": {"required": ["media"]}}
+  ]
+}

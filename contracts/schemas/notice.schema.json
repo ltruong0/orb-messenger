@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "orb/notice.schema.json",
+  "title": "orb/{id}/notice (hub → orb, NOT retained)",
+  "type": "object",
+  "required": ["type", "by", "msg_id"],
+  "properties": {
+    "type": {"enum": ["read_receipt", "reaction"]},
+    "by": {"type": "string", "minLength": 1, "maxLength": 24},
+    "msg_id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
+    "sticker": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"}
+  },
+  "if": {"properties": {"type": {"const": "reaction"}}},
+  "then": {"required": ["sticker"]}
+}

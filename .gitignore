@@ -1,0 +1,35 @@
+# secrets and local env: never commit
+.env
+.env.*
+!.env.example
+deploy/k8s/overlays/*/secrets/
+*.pem
+*.pfx
+*.key
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# local data
+/data/
+hub/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# platformio
+firmware/.pio/
+firmware/.vscode/
+
+# os / editors
+.DS_Store
+.idea/
+*.swp

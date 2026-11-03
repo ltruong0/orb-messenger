@@ -1,0 +1,39 @@
+# Orb Messenger: starter package
+
+Round ESP32-S3 screens for sending each other small messages, stickers and photos between home offices. Mosquitto and the web app run on the homelab k3s cluster.
+
+## Using this with Claude Code
+
+1. Unzip, `cd orb-messenger`, `git init`.
+2. Start Claude Code here and say: **"Read PROMPT.md and start Phase 0."**
+3. It will ask you the open environment questions (ingress, storage, DNS, TLS, registry), propose a plan, and wait for your go-ahead.
+
+`CLAUDE.md` is loaded automatically by Claude Code on every session. It holds the conventions and the "things that will bite" list.
+
+## What's here
+
+| Path | What |
+|---|---|
+| `PROMPT.md` | Kickoff prompt: goals, phases, acceptance checks, rules |
+| `CLAUDE.md` | Repo conventions and gotchas |
+| `docs/architecture.md` | Components, message lifecycle, pairing, network paths |
+| `docs/mqtt-contract.md` | Topics and payloads (normative) |
+| `docs/hub-api.md` | REST + SSE for msg-hub |
+| `docs/firmware.md` | Orb firmware stack, tasks, state machine |
+| `docs/hardware.md` | Board facts (⚠ = verify), LED wiring and modes |
+| `docs/deploy.md` | k3s objects, ingress, backups |
+| `docs/decisions.md` | Why it's built this way |
+| `contracts/` | JSON Schemas, valid and invalid examples, `validate.py` (`make contract-test`) |
+| `deploy/mosquitto/` | Starter `mosquitto.conf` and `aclfile` |
+| `design/png/` | Mockups and diagrams as PNG |
+| `design/html/` | The same boards as standalone HTML (fonts bundled) |
+
+## Design boards
+
+| File | Board |
+|---|---|
+| `01-architecture` | System architecture |
+| `02-registration-pairing` | Self-registration and pairing sequence |
+| `03-mqtt-topics-acl` | Topic table, inbox payload, Mosquitto ACL |
+| `10-app-send` … `13-app-stickers` | Phone app: Send, History, Orbs, Stickers |
+| `20-orb-screen-states` | Eight orb screen states with LED colors |

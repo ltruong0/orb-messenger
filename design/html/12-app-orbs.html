@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App · Orbs</title>
+<style>
+@font-face{font-family:'Fredoka';src:url('fonts/fredoka-latin-wght-normal.woff2') format('woff2');font-weight:300 700;font-display:block}
+@font-face{font-family:'DM Sans';src:url('fonts/dm-sans-latin-wght-normal.woff2') format('woff2');font-weight:100 1000;font-display:block}
+@font-face{font-family:'JetBrains Mono';src:url('fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');font-weight:100 800;font-display:block}
+
+body{margin:0}
+a{color:#5B3FE0}a:hover{color:#3F27B8}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F6FB; font-family: 'DM Sans', system-ui, sans-serif; color: #1C1A2E; display: flex; flex-direction: column">
+<div style="flex-grow: 1; padding: 56px 20px 16px; display: flex; flex-direction: column; gap: 20px; overflow: hidden">
+<h1 style="margin: 0; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 30px; line-height: 36px; font-weight: 600">Orbs</h1>
+
+<div style="padding: 18px; background: #FFFFFF; border: 2px solid #5B3FE0; border-radius: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 20px; line-height: 26px; font-weight: 600">New orb found</div>
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; line-height: 18px; color: #5E5A75">orb-3f2a · fw 0.3.1</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 14px; line-height: 20px; color: #3D3A52">Type the code showing on its screen</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<input aria-label="Code digit 1" inputmode="numeric" maxlength="1" value="4" style="box-sizing: border-box; width: 100%; height: 56px; text-align: center; border: 1px solid #D9D6E8; border-radius: 14px; background: #F7F6FB; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 26px; color: #1C1A2E">
+<input aria-label="Code digit 2" inputmode="numeric" maxlength="1" value="8" style="box-sizing: border-box; width: 100%; height: 56px; text-align: center; border: 1px solid #D9D6E8; border-radius: 14px; background: #F7F6FB; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 26px; color: #1C1A2E">
+<input aria-label="Code digit 3" inputmode="numeric" maxlength="1" value="2" style="box-sizing: border-box; width: 100%; height: 56px; text-align: center; border: 1px solid #D9D6E8; border-radius: 14px; background: #F7F6FB; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 26px; color: #1C1A2E">
+<input aria-label="Code digit 4" inputmode="numeric" maxlength="1" value="" style="box-sizing: border-box; width: 100%; height: 56px; text-align: center; border: 2px solid #5B3FE0; border-radius: 14px; background: #FFFFFF; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 26px; color: #1C1A2E">
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="orbname" style="font-size: 14px; line-height: 20px; color: #3D3A52">Name</label>
+<input id="orbname" value="Living room" style="box-sizing: border-box; width: 100%; height: 48px; padding: 0 14px; border: 1px solid #D9D6E8; border-radius: 14px; background: #FFFFFF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 16px; color: #1C1A2E">
+</div>
+<div style="display: flex; gap: 10px">
+<button type="button" style="min-height: 48px; padding: 0 18px; border: 1px solid #D9D6E8; border-radius: 14px; background: #FFFFFF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; font-weight: 500; color: #3D3A52; cursor: pointer">Ignore</button>
+<button type="button" style="flex-grow: 1; min-height: 48px; border: none; border-radius: 14px; background: #5B3FE0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; cursor: pointer">Approve</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 12px; line-height: 16px; letter-spacing: 0.06em; font-weight: 700; color: #4F4C66">PAIRED</div>
+<div style="padding: 14px 16px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px; display: flex; align-items: center; gap: 14px">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: #1C1A2E; box-shadow: 0 0 0 3px #CFE9DA"></span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><div style="display: flex; align-items: center; gap: 8px; font-size: 16px; line-height: 22px; font-weight: 700">Lee's office<span style="padding: 2px 8px; border-radius: 999px; background: #EFEAFF; font-size: 11px; line-height: 16px; letter-spacing: 0.04em; color: #4A34B8">YOURS</span></div><div style="font-size: 13px; line-height: 18px; color: #1F5E3A">online · fw 0.3.1</div></div>
+</div>
+<div style="padding: 14px 16px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px; display: flex; align-items: center; gap: 14px">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: #1C1A2E; box-shadow: 0 0 0 3px #CFE9DA"></span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><div style="display: flex; align-items: center; gap: 8px; font-size: 16px; line-height: 22px; font-weight: 700">Her office<span style="padding: 2px 8px; border-radius: 999px; background: #EEF2F4; font-size: 11px; line-height: 16px; letter-spacing: 0.04em; color: #3E5560">HERS</span></div><div style="font-size: 13px; line-height: 18px; color: #1F5E3A">online · 1 unread</div></div>
+</div>
+<div style="padding: 14px 16px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px; display: flex; align-items: center; gap: 14px">
+<span style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: #8D89A3; box-shadow: 0 0 0 3px #E4E1EE"></span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><div style="display: flex; align-items: center; gap: 8px; font-size: 16px; line-height: 22px; font-weight: 700">Kitchen<span style="padding: 2px 8px; border-radius: 999px; background: #EEF2F4; font-size: 11px; line-height: 16px; letter-spacing: 0.04em; color: #3E5560">SHARED</span></div><div style="font-size: 13px; line-height: 18px; color: #5E5A75">offline · last seen 3 h ago</div></div>
+</div>
+</div>
+</div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 8px 28px; background: #FFFFFF; border-top: 1px solid #E4E1EE">
+<a href="10-app-send.html" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; color: #5E5A75; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10 14"></path><path d="M21 3l-7 18-4-7-7-4 18-7z"></path></svg>Send</a>
+<a href="11-app-history.html" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; color: #5E5A75; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>History</a>
+<a href="12-app-orbs.html" aria-current="page" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; font-weight: 700; color: #5B3FE0; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle></svg>Orbs</a>
+<a href="13-app-stickers.html" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; color: #5E5A75; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2"></path><path d="M9 9.5h.01M15 9.5h.01"></path></svg>Stickers</a>
+</nav>
+</div>
+</body>
+</html>

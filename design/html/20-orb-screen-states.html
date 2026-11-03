@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orb screen states</title>
+<style>
+@font-face{font-family:'Fredoka';src:url('fonts/fredoka-latin-wght-normal.woff2') format('woff2');font-weight:300 700;font-display:block}
+@font-face{font-family:'DM Sans';src:url('fonts/dm-sans-latin-wght-normal.woff2') format('woff2');font-weight:100 1000;font-display:block}
+@font-face{font-family:'JetBrains Mono';src:url('fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');font-weight:100 800;font-display:block}
+
+body{margin:0}
+a{color:#5B3FE0}a:hover{color:#3F27B8}
+</style>
+</head>
+<body>
+<div style="width: 2200px; height: 1320px; box-sizing: border-box; padding: 48px 64px 52px; background: #F7F6FB; font-family: 'DM Sans', system-ui, sans-serif; color: #1C1A2E; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 40px; line-height: 48px; font-weight: 600">Orb screen states</h1>
+<p style="margin: 0; font-size: 17px; line-height: 24px; color: #4F4C66">Drawn at 1:1 for a 466 × 466 round panel. Keep text inside the inscribed 330 px square. The outer ring stands in for your enclosure, and its glow for the LED.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 64px; row-gap: 48px">
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; border-radius: 50%; background: #000000; box-shadow: 0 0 0 8px #DCD8E6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 56px">
+<div style="display: flex; gap: 84px"><span style="width: 64px; height: 104px; border-radius: 32px; background: #F4F2FF"></span><span style="width: 64px; height: 104px; border-radius: 32px; background: #F4F2FF"></span></div>
+<div style="font-size: 18px; line-height: 24px; color: #9A96B4">Lee's office</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Idle</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">Eyes blink and drift to avoid burn-in · LED off</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; border-radius: 50%; background: #000000; box-shadow: 0 0 0 8px #DCD8E6, 0 0 48px 12px rgba(235, 50, 50, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px">
+<svg width="120" height="108" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 21s-8.5-5.2-10.6-10.4C-0.1 6.4 2.6 2 6.6 2c2.4 0 4.2 1.4 5.4 3.2C13.2 3.4 15 2 17.4 2c4 0 6.7 4.4 5.2 8.6C20.5 15.8 12 21 12 21z" fill="#FF5A5A"></path></svg>
+<div style="font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 34px; line-height: 40px; font-weight: 600; color: #FFFFFF">New from Her</div>
+<div style="font-size: 18px; line-height: 24px; color: #9A96B4">tap to open</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Unread</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">Content hidden until tapped · LED red breathe</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; border-radius: 50%; background: #000000; box-shadow: 0 0 0 8px #DCD8E6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px">
+<div style="font-size: 16px; line-height: 20px; color: #9A96B4">Her · 11:58</div>
+<div style="width: 330px; text-align: center; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 44px; line-height: 52px; font-weight: 500; color: #FFFFFF; text-wrap: balance">proud of you today</div>
+<div style="font-size: 16px; line-height: 20px; color: #9A96B4">hold to send a heart back</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Text</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">Up to 80 characters, auto-sized · LED off once read</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; border-radius: 50%; background: #000000; box-shadow: 0 0 0 8px #DCD8E6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px">
+<div style="font-size: 150px; line-height: 1">🥰</div>
+<div style="width: 330px; text-align: center; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 30px; line-height: 36px; font-weight: 500; color: #FFFFFF">thinking of you</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Sticker + caption</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">160 px PNG from the orb's local cache</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; box-sizing: border-box; border-radius: 50%; background: #2A2640; box-shadow: 0 0 0 8px #DCD8E6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #C9C5E6">
+<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M21 16l-5-5-8 8"></path></svg>
+<div style="font-size: 20px; line-height: 26px; text-align: center">[photo]<br>466 × 466 JPEG, round-cropped</div>
+<div style="margin-top: 40px; padding: 6px 14px; border-radius: 999px; background: rgba(0,0,0,0.6); font-size: 15px; line-height: 20px; color: #FFFFFF">from Lee</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Photo</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">Fetched over HTTP from /media, full bleed</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; border-radius: 50%; background: #000000; box-shadow: 0 0 0 8px #DCD8E6, 0 0 48px 12px rgba(46, 200, 110, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px">
+<div style="display: flex; gap: 84px"><svg width="72" height="44" viewBox="0 0 72 44" fill="none" stroke="#F4F2FF" stroke-width="14" stroke-linecap="round" aria-hidden="true"><path d="M8 36 C 16 4, 56 4, 64 36"></path></svg><svg width="72" height="44" viewBox="0 0 72 44" fill="none" stroke="#F4F2FF" stroke-width="14" stroke-linecap="round" aria-hidden="true"><path d="M8 36 C 16 4, 56 4, 64 36"></path></svg></div>
+<div style="font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 34px; line-height: 40px; font-weight: 600; color: #FFFFFF">Her read it</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Read receipt (sender's orb)</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">LED green, fades out after 30 s or a tap</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; border-radius: 50%; background: #000000; box-shadow: 0 0 0 8px #DCD8E6, 0 0 48px 12px rgba(70, 130, 255, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px">
+<div style="font-size: 18px; line-height: 24px; color: #9A96B4">pair me</div>
+<div style="font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 100px; line-height: 110px; font-weight: 600; letter-spacing: 0.08em; color: #FFFFFF">4821</div>
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 16px; line-height: 22px; color: #9A96B4">orb-3f2a</div>
+<div style="width: 300px; text-align: center; font-size: 17px; line-height: 24px; color: #C9C5E6">enter this code in the app</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Pairing</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">After first Wi-Fi setup · LED blue until approved</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="width: 466px; height: 466px; border-radius: 50%; background: #000000; box-shadow: 0 0 0 8px #DCD8E6, 0 0 40px 8px rgba(245, 170, 40, 0.45); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px">
+<svg width="72" height="72" viewBox="0 0 48 48" fill="none" stroke-width="5" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="19" stroke="#2E2B40"></circle><path d="M24 5 A 19 19 0 0 1 43 24" stroke="#F5AA28"></path></svg>
+<div style="font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 30px; line-height: 36px; font-weight: 600; color: #FFFFFF">Can't reach the hub…</div>
+<div style="width: 300px; text-align: center; font-size: 16px; line-height: 22px; color: #9A96B4">mqtt.home.lan · hold the button 5 s to redo Wi-Fi setup</div>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 4px"><b style="font-size: 17px; line-height: 22px">Broker unreachable</b><span style="font-size: 14px; line-height: 20px; color: #4F4C66">Retries with backoff · LED amber, slow</span></div>
+</div>
+
+</div>
+</div>
+</body>
+</html>

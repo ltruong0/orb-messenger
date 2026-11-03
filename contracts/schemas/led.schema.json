@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "orb/led.schema.json",
+  "title": "orb/{id}/led (hub → orb, retained)",
+  "type": "object",
+  "required": ["mode"],
+  "properties": {
+    "mode": {"enum": ["unread", "read", "pair", "off"]},
+    "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+    "pattern": {"enum": ["solid", "breathe", "blink", "pulse"]}
+  }
+}

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App · Stickers</title>
+<style>
+@font-face{font-family:'Fredoka';src:url('fonts/fredoka-latin-wght-normal.woff2') format('woff2');font-weight:300 700;font-display:block}
+@font-face{font-family:'DM Sans';src:url('fonts/dm-sans-latin-wght-normal.woff2') format('woff2');font-weight:100 1000;font-display:block}
+@font-face{font-family:'JetBrains Mono';src:url('fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');font-weight:100 800;font-display:block}
+
+body{margin:0}
+a{color:#5B3FE0}a:hover{color:#3F27B8}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F7F6FB; font-family: 'DM Sans', system-ui, sans-serif; color: #1C1A2E; display: flex; flex-direction: column">
+<div style="flex-grow: 1; padding: 56px 20px 16px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+<h1 style="margin: 0; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 30px; line-height: 36px; font-weight: 600">Stickers</h1>
+
+<div style="padding: 16px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; background: #F0EEF5; border-radius: 14px">
+<button type="button" aria-pressed="true" style="min-height: 40px; border: none; border-radius: 10px; background: #FFFFFF; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 700; color: #1C1A2E; box-shadow: 0 1px 2px rgba(28,26,46,0.12); cursor: pointer">Emoji</button>
+<button type="button" aria-pressed="false" style="min-height: 40px; border: none; border-radius: 10px; background: transparent; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 500; color: #4F4C66; cursor: pointer">Upload image</button>
+</div>
+<div style="display: flex; align-items: center; gap: 16px">
+<div aria-hidden="true" style="width: 112px; height: 112px; flex-shrink: 0; border-radius: 50%; background: #0B0A12; box-shadow: 0 0 0 4px #E4E1EE; display: flex; align-items: center; justify-content: center; font-size: 56px; line-height: 1">🌻</div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<label for="emo" style="font-size: 13px; line-height: 18px; color: #3D3A52">Emoji</label>
+<input id="emo" value="🌻" style="box-sizing: border-box; width: 100%; height: 44px; padding: 0 12px; border: 1px solid #D9D6E8; border-radius: 12px; font-size: 22px; color: #1C1A2E">
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<label for="stkname" style="font-size: 13px; line-height: 18px; color: #3D3A52">Name</label>
+<input id="stkname" value="sunflower" style="box-sizing: border-box; width: 100%; height: 44px; padding: 0 12px; border: 1px solid #D9D6E8; border-radius: 12px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; color: #1C1A2E">
+</div>
+</div>
+</div>
+<div style="font-size: 13px; line-height: 18px; color: #5E5A75">The hub renders it to a 160 px PNG so every orb shows the same art, then each orb caches it.</div>
+<button type="button" style="min-height: 48px; border: none; border-radius: 14px; background: #5B3FE0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; cursor: pointer">Add to library</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<div style="font-size: 12px; line-height: 16px; letter-spacing: 0.06em; font-weight: 700; color: #4F4C66">LIBRARY · 7</div>
+<a href="#phrases" style="font-size: 14px; line-height: 20px; font-weight: 500; min-height: 44px; display: flex; align-items: center">Edit quick phrases</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px"><span style="font-size: 30px; line-height: 1">💜</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">heart</span></div>
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px"><span style="font-size: 30px; line-height: 1">🥰</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">heart-eyes</span></div>
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px"><span style="font-size: 30px; line-height: 1">☕</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">coffee</span></div>
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px"><span style="font-size: 30px; line-height: 1">🌞</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">sun</span></div>
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px"><span style="font-size: 30px; line-height: 1">🫶</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">heart-hands</span></div>
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px"><span style="font-size: 30px; line-height: 1">✨</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">sparkles</span></div>
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFFFF; border: 1px solid #E4E1EE; border-radius: 18px"><span style="font-size: 30px; line-height: 1">🐱</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">cat</span></div>
+<div style="height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #F7F6FB; border: 1.5px dashed #A9A4C4; border-radius: 18px"><span style="font-size: 30px; line-height: 1; opacity: 0.55">🌻</span><span style="font-size: 11px; line-height: 14px; color: #5E5A75">adding…</span></div>
+</div>
+</div>
+</div>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 8px 28px; background: #FFFFFF; border-top: 1px solid #E4E1EE">
+<a href="10-app-send.html" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; color: #5E5A75; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10 14"></path><path d="M21 3l-7 18-4-7-7-4 18-7z"></path></svg>Send</a>
+<a href="11-app-history.html" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; color: #5E5A75; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>History</a>
+<a href="12-app-orbs.html" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; color: #5E5A75; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle></svg>Orbs</a>
+<a href="13-app-stickers.html" aria-current="page" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12px; line-height: 14px; font-weight: 700; color: #5B3FE0; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2"></path><path d="M9 9.5h.01M15 9.5h.01"></path></svg>Stickers</a>
+</nav>
+</div>
+</body>
+</html>

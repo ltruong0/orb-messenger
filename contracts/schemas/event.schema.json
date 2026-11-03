@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "orb/event.schema.json",
+  "title": "orb/{id}/event (orb → hub, NOT retained)",
+  "type": "object",
+  "required": ["type", "msg_id"],
+  "properties": {
+    "type": {"enum": ["received", "read", "react"]},
+    "msg_id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
+    "sticker": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"}
+  },
+  "if": {"properties": {"type": {"const": "react"}}},
+  "then": {"required": ["sticker"]}
+}

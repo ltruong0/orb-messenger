@@ -1,0 +1,20 @@
+# Orb Messenger ACL. See docs/mqtt-contract.md.
+# Mosquitto applies `pattern` lines to every authenticated client; %c = client id.
+# Orbs connect as user "orb" with client id == orb id (e.g. orb-3f2a).
+
+# msg-hub owns everything under orb/
+user msg-hub
+topic readwrite orb/#
+
+# all orbs (shared login): shared, read-only sticker manifest
+user orb
+topic read orb/all/#
+
+# each client, only under its own client id
+pattern write orb/%c/hello
+pattern write orb/%c/status
+pattern write orb/%c/event
+pattern read  orb/%c/config
+pattern read  orb/%c/inbox
+pattern read  orb/%c/led
+pattern read  orb/%c/notice

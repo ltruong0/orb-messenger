@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "orb/stickers.schema.json",
+  "title": "orb/all/stickers (hub → all orbs, retained)",
+  "type": "object",
+  "required": ["rev", "items"],
+  "properties": {
+    "rev": {"type": "integer", "minimum": 0},
+    "items": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "required": ["key", "url", "sha256"],
+        "properties": {
+          "key": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"},
+          "url": {"type": "string", "pattern": "^/media/stickers/[a-z0-9-]{1,32}\\.png$"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

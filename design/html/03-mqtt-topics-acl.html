@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MQTT topics & ACL</title>
+<style>
+@font-face{font-family:'Fredoka';src:url('fonts/fredoka-latin-wght-normal.woff2') format('woff2');font-weight:300 700;font-display:block}
+@font-face{font-family:'DM Sans';src:url('fonts/dm-sans-latin-wght-normal.woff2') format('woff2');font-weight:100 1000;font-display:block}
+@font-face{font-family:'JetBrains Mono';src:url('fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2');font-weight:100 800;font-display:block}
+
+body{margin:0}
+a{color:#5B3FE0}a:hover{color:#3F27B8}
+</style>
+</head>
+<body>
+<div style="width: 1120px; height: 1040px; box-sizing: border-box; padding: 52px 64px 64px; background: #F7F6FB; font-family: 'DM Sans', system-ui, sans-serif; color: #1C1A2E; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h1 style="margin: 0; font-family: Fredoka, 'DM Sans', system-ui, sans-serif; font-size: 40px; line-height: 48px; font-weight: 600">MQTT topics &amp; ACL</h1>
+<p style="margin: 0; font-size: 17px; line-height: 24px; color: #4F4C66">The contract between the hub and every orb. <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 15px">{id}</span> is the orb's MQTT client id, e.g. <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 15px">orb-3f2a</span> from the last 2 MAC bytes.</p>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #D9D6E8; border-radius: 16px; overflow: hidden; font-size: 14px; line-height: 20px">
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; background: #EFECFB; font-size: 12px; letter-spacing: 0.06em; font-weight: 700; color: #4F4C66">
+<div>TOPIC</div><div>DIRECTION</div><div>RETAIN</div><div>PAYLOAD</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/{id}/hello</div><div>orb → hub</div><div>yes</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">{fw, w:466, h:466, caps:[touch, led, speaker]}</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/{id}/status</div><div>orb (+ LWT)</div><div>yes</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">"online" · "offline" (broker sends on drop)</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/{id}/config</div><div>hub → orb</div><div>yes</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">{state: pending|active, code?, name, brightness, quiet: "22:00-07:00"}</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/{id}/inbox</div><div>hub → orb</div><div>yes</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">latest message (example below). QoS 1.</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/{id}/led</div><div>hub → orb</div><div>yes</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">{mode: unread|read|pair|off, color, pattern: breathe}</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/{id}/notice</div><div>hub → orb</div><div>no</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">{type: read_receipt, by, msg_id}: "Her read it" on the sender's home orb</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/{id}/event</div><div>orb → hub</div><div>no</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">{type: received|read|react, msg_id, sticker?}</div>
+</div>
+<div style="display: grid; grid-template-columns: 210px 150px 72px minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-top: 1px solid #ECEAF3">
+<div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px">orb/all/stickers</div><div>hub → all orbs</div><div>yes</div><div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #3D3A52">{rev, items:[{key, url}]}: orbs cache PNGs in LittleFS by rev</div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; flex-grow: 1">
+<div style="background: #1C1A2E; color: #ECEAF6; border-radius: 16px; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 12px; letter-spacing: 0.06em; font-weight: 700; color: #B9B3E6">INBOX PAYLOAD · fan-out = one publish per recipient</div>
+<pre style="margin: 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; white-space: pre">{
+  "id": "01JBX7Q2…",
+  "from": "lee",
+  "type": "sticker",
+  "text": "thinking of you",
+  "sticker": "heart-eyes",
+  "media": "/media/stk/heart-eyes.png",
+  "ts": 1761834120
+}</pre>
+</div>
+<div style="background: #1C1A2E; color: #ECEAF6; border-radius: 16px; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 12px; letter-spacing: 0.06em; font-weight: 700; color: #B9B3E6">MOSQUITTO ACL</div>
+<pre style="margin: 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; white-space: pre">user msg-hub
+topic readwrite orb/#
+
+# every orb, scoped by its client id
+pattern write orb/%c/hello
+pattern write orb/%c/status
+pattern write orb/%c/event
+pattern read  orb/%c/config
+pattern read  orb/%c/inbox
+pattern read  orb/%c/led
+pattern read  orb/%c/notice
+topic   read  orb/all/#</pre>
+<div style="font-size: 13px; line-height: 19px; color: #C9C5E6">Orbs share one "orb" login. %c pins each to topics under its own client id, so one orb can't write another's inbox.</div>
+</div>
+</div>
+</div>
+</body>
+</html>
