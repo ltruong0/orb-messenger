@@ -1,4 +1,5 @@
-"""orb-sim CLI: run one simulated orb and drive it from the keyboard.
+"""orb-sim CLI: run one simulated orb and drive it from the keyboard,
+or `--web PORT` to run several and drive them from a browser.
 
 read            tap: open the current message
 react [sticker] long-press: send a sticker back (default purple-heart)
@@ -41,6 +42,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--lenient", action="store_true", help="log contract violations instead of exiting"
     )
     p.add_argument("--no-color", action="store_true")
+    p.add_argument(
+        "--web",
+        type=int,
+        metavar="PORT",
+        help="serve the browser UI (mock orb screens) on this port instead of the REPL",
+    )
+    p.add_argument("--bind", default=env("ORB_SIM_BIND", "0.0.0.0"), help="--web bind address")
+    p.add_argument(
+        "--ids",
+        default=env("ORB_SIM_IDS", ""),
+        help="--web: comma-separated orb ids (default: --id)",
+    )
     return p.parse_args(argv)
 
 
@@ -114,9 +127,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     from .render import Console
 
-    console = Console(prefix=f"[{a.id}] ", color=False if a.no_color else None)
     try:
-        sim = OrbSim(settings, Contracts(), console)
+        contracts = Contracts()
+        if a.web:
+            from .web import Fleet, serve
+
+            ids = [i.strip() for i in a.ids.split(",") if i.strip()] or [a.id]
+            fleet = Fleet(settings, ids, contracts)
+            return asyncio.run(serve(fleet, a.bind, a.web))
+        console = Console(prefix=f"[{a.id}] ", color=False if a.no_color else None)
+        sim = OrbSim(settings, contracts, console)
     except FileNotFoundError as e:
         print(f"orb-sim: {e}", file=sys.stderr)
         return 1

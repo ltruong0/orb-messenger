@@ -5,10 +5,8 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import http.server
 import io
 import json
-import threading
 import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -60,24 +58,6 @@ async def make_sim(broker: Broker, orb_id: str, tmp_path: Path):
     yield _make
     for sim in sims:
         await sim.stop()
-
-
-@pytest.fixture
-def media_server(tmp_path: Path):
-    """Plain HTTP server for /media/* like the hub's, serving tmp_path/www."""
-    root = tmp_path / "www"
-    (root / "media" / "stickers").mkdir(parents=True)
-    (root / "media" / "photos").mkdir(parents=True)
-    handler = lambda *a, **k: http.server.SimpleHTTPRequestHandler(  # noqa: E731
-        *a, directory=str(root), **k
-    )
-    handler.log_message = lambda *a, **k: None
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    try:
-        yield root, f"http://127.0.0.1:{srv.server_port}"
-    finally:
-        srv.shutdown()
 
 
 def active_config(media_base: str = "http://orb.marcellolab.com", **extra) -> dict:

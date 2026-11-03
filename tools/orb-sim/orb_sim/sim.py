@@ -129,6 +129,7 @@ class OrbSim:
         self._hold_until = 0.0
         self._changed = asyncio.Event()
         self._prev_state = State.IDLE
+        self.listeners: list[Callable[[OrbSim], None]] = []  # called on every change
 
     # ------------------------------------------------------------ lifecycle
     def start(self) -> asyncio.Task:
@@ -251,6 +252,24 @@ class OrbSim:
         if sock is not None:
             with contextlib.suppress(OSError):
                 sock.shutdown(socket.SHUT_RDWR)
+
+    async def reboot(self, seconds: float = 1.0) -> None:
+        """Power-cycle: forget everything in RAM (NVS survives), reconnect and let
+        the retained topics rebuild the state, exactly like a real orb."""
+        self.console.say("net", "rebooting (RAM cleared, NVS kept)")
+        if self._timer is not None:
+            self._timer.cancel()
+        self.config = None
+        self.message = None
+        self.photo = None
+        self.led = {"mode": "off"}
+        self.notice = None
+        self.stickers = None
+        self._prev_state = State.IDLE
+        self.connected = False
+        self._set_state(State.UNREACHABLE)
+        self._touch()
+        await self.drop(seconds)
 
     # ------------------------------------------------------------ MQTT in
     async def _on_connect(self, client: aiomqtt.Client) -> None:
@@ -461,6 +480,8 @@ class OrbSim:
 
     def _touch(self) -> None:
         self._changed.set()
+        for cb in self.listeners:
+            cb(self)
 
     def _arm_timer(self, seconds: float, only_if: State, back_to: State | None) -> None:
         if self._timer is not None:

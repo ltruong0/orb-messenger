@@ -1,6 +1,6 @@
 # Orb Messenger. Targets listed in CLAUDE.md; add them as each phase lands.
 # Python tooling runs through uv (pins Python 3.12 + locked deps).
-.PHONY: contract-test broker-test broker-check sim-test hub-test test lint fmt mosquitto-passwd sim hub-run image fonts deploy deploy-diff
+.PHONY: contract-test broker-test broker-check sim-test hub-test test lint fmt mosquitto-passwd sim sim-ui hub-run image fonts deploy deploy-diff
 
 UV ?= uv
 IMAGE ?= ghcr.io/ltruong0/orb-messenger/msg-hub
@@ -22,7 +22,7 @@ broker-check:             ## same tests against the deployed broker (restarts th
 	  $(UV) run pytest tests/test_broker_acl.py
 
 sim-test:                 ## orb-sim against Mosquitto in Docker
-	$(UV) run pytest tests/test_orb_sim.py
+	$(UV) run pytest tests/test_orb_sim.py tests/test_orb_sim_web.py
 
 hub-test:                 ## msg-hub unit + integration tests (Mosquitto in Docker, two orb-sims)
 	$(UV) run pytest hub/tests
@@ -48,6 +48,12 @@ fonts:                    ## fetch NotoColorEmoji.ttf for local sticker renderin
 	@mkdir -p $(dir $(EMOJI_FONT_CACHE))
 	curl -sSL -o $(EMOJI_FONT_CACHE) $(EMOJI_FONT_URL)
 	@file $(EMOJI_FONT_CACHE)
+
+IDS ?= orb-sim1,orb-sim2
+PORT ?= 8090
+sim-ui:                   ## browser UI with mock orb screens: make sim-ui IDS=orb-sim1,orb-sim2 PORT=8090
+	@test -f .env || { echo ".env missing"; exit 1; }
+	@set -a; . ./.env; set +a; $(UV) run orb-sim --web $(PORT) --ids $(IDS) $(SIM_ARGS)
 
 lint:
 	$(UV) run ruff check . && $(UV) run ruff format --check .

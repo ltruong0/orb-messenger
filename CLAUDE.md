@@ -32,7 +32,8 @@ make mosquitto-passwd # write the gitignored passwd file for the homelab overlay
 make lint / make fmt # ruff
 make hub-test        # msg-hub unit + integration tests (uvicorn in-process, Mosquitto in Docker, two orb-sims)
 make hub-run         # run msg-hub locally against MQTT_HOST from .env (state in hub/data)
-make sim ID=orb-sim1 # run orb-sim
+make sim ID=orb-sim1 # run one orb-sim at the terminal
+make sim-ui          # orb-sim --web: two orbs with mock 466 px screens at http://localhost:8090 (IDS=, PORT=)
 make image           # docker build hub/Dockerfile from the repo root (TAG=dev)
 make deploy          # kubectl apply -k deploy/k8s/overlays/homelab
 pio run -d firmware -t upload   # flash an orb
@@ -65,4 +66,5 @@ pio run -d firmware -t upload   # flash an orb
 - **No `from __future__ import annotations` in `hub/app/api.py`.** FastAPI resolves annotations at decoration time; a locally defined `Annotated[...]` alias becomes an unresolvable string and silently turns into a query parameter (422 instead of 401).
 - **Retained `hello` from a dead orb is a pending orb.** Any test that leaves retained topics behind on the shared broker will see it registered by the next hub. The hub test fixtures clear them; do the same in new fixtures.
 - **The hub tells a fresh `hello` from a replayed one by the MQTT retain flag.** Don't "fix" that by regenerating codes on every hello: a hub restart would change the code every orb is showing.
+- **httpx's `ASGITransport` buffers whole responses.** SSE endpoints can't be tested through it; run uvicorn in-process (hub tests) or drive the generator directly (sim web tests).
 - **Stickers: `thumbnail()` never upscales.** The 109 px emoji glyph must be resized up to 160; use `resize`, not `thumbnail`.

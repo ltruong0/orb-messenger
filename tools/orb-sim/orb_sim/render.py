@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import time
 from collections import deque
+from collections.abc import Callable
 
 ICONS = {
     "net": "▶",
@@ -32,19 +33,33 @@ COLORS = {
 
 
 class Console:
-    def __init__(self, prefix: str = "", color: bool | None = None, keep: int = 500):
+    def __init__(
+        self,
+        prefix: str = "",
+        color: bool | None = None,
+        keep: int = 500,
+        quiet: bool = False,
+        on_line: Callable[[], None] | None = None,
+    ):
         self.prefix = prefix
         self.color = sys.stdout.isatty() if color is None else color
-        self.lines: deque[tuple[str, str]] = deque(maxlen=keep)
+        self.quiet = quiet  # keep lines, don't print (web UI)
+        self.on_line = on_line
+        self.lines: deque[tuple[str, str]] = deque(maxlen=keep)  # (kind, text)
+        self.entries: deque[tuple[float, str, str]] = deque(maxlen=keep)  # (ts, kind, text)
 
     def say(self, kind: str, text: str) -> None:
         self.lines.append((kind, text))
-        icon = ICONS.get(kind, "·")
-        stamp = time.strftime("%H:%M:%S")
-        line = f"{stamp}  {self.prefix}{icon} {text}"
-        if self.color:
-            line = f"\x1b[{COLORS.get(kind, '0')}m{line}\x1b[0m"
-        print(line, flush=True)
+        self.entries.append((time.time(), kind, text))
+        if not self.quiet:
+            icon = ICONS.get(kind, "·")
+            stamp = time.strftime("%H:%M:%S")
+            line = f"{stamp}  {self.prefix}{icon} {text}"
+            if self.color:
+                line = f"\x1b[{COLORS.get(kind, '0')}m{line}\x1b[0m"
+            print(line, flush=True)
+        if self.on_line is not None:
+            self.on_line()
 
     def screen(self, state: str, headline: str, sub: str = "") -> None:
         body = f"{state.upper():<12} {headline}"

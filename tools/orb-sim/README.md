@@ -5,11 +5,31 @@ CLI for poking at the broker/hub and an async library the hub's integration test
 drive directly.
 
 ```
-make sim ID=orb-sim1            # broker + password from .env
+make sim ID=orb-sim1            # one orb at the terminal (broker + password from .env)
+make sim-ui                     # two orbs with mock screens in the browser: http://localhost:8090
 uv run orb-sim --help
 ```
 
-Commands at the prompt: `read` (tap), `react [sticker]` (long-press), `drop [seconds]`
+## Browser UI (`--web`)
+
+`orb-sim --web 8090 --ids orb-sim1,orb-sim2` runs several orbs in one process and
+serves a page that draws each one as a 466 px round screen, following
+`design/png/20-orb-screen-states.png`: pairing code, idle eyes, "New from …",
+text auto-sized, sticker + caption, full-bleed photo, read receipt, broker
+unreachable. The enclosure ring glows with the LED (`led` payload colour and
+pattern; amber while unreachable). Tap the screen (or **Tap**) to open, hold it
+≥ 600 ms (or **Hold** + sticker picker) to react, **Drop 5 s** cuts the socket so
+the LWT fires, **Reboot** clears RAM and rebuilds from the retained topics. The
+log under each orb is the same output the terminal mode prints.
+
+The browser never talks MQTT: the page gets a snapshot of every orb over SSE
+(`/api/events`) and posts actions to `/api/orbs/{id}/tap|hold|drop|reboot`. The
+stickers and photos it shows are served from the orb's own cache
+(`/orbs/{id}/stickers/{key}.png`, `/orbs/{id}/photo.jpg`), i.e. the bytes the
+orb downloaded and verified, not the hub's originals. Binds to `0.0.0.0` so you
+can open it from a phone on the LAN (`--bind 127.0.0.1` to keep it local).
+
+Commands at the terminal prompt: `read` (tap), `react [sticker]` (long-press), `drop [seconds]`
 (cut the socket without DISCONNECT so the LWT fires, reconnect later), `status`, `quit`.
 
 What it does on its own:
