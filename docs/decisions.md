@@ -23,3 +23,15 @@ Short records. Add new ones at the bottom.
 10. **SQLite, one replica.** The load is two people. `Recreate` strategy and a PVC. Postgres only if there's a real need.
 
 11. **Household PIN auth for the PWA.** LAN-only plus Tailscale, two users. No accounts, no OAuth.
+
+12. **Hostnames `orb.marcellolab.com` / `mqtt.marcellolab.com`, not `*.home.lan`.** (2026-11-02) The lab already has Technitium DNS, Traefik with a default mkcert wildcard cert for `*.marcellolab.com`, and k3s ServiceLB on the single node's IP. Reusing them gives HTTPS for the PWA with zero new infrastructure. No Tailscale: the orbs are only ever used at home.
+
+13. **Mosquitto conf and ACL live under `deploy/k8s/base/mosquitto/`.** Kustomize refuses `configMapGenerator` sources outside the kustomization directory, so the files moved from `deploy/mosquitto/` into the base. The base is the only copy; tests bind-mount it into Docker.
+
+14. **Password file generated in pure Python.** `tools/mosquitto_passwd.py` reproduces `mosquitto_passwd`'s `$7$101$salt$hash` (PBKDF2-SHA512) format so neither the laptop nor CI needs Mosquitto installed. Verified against `eclipse-mosquitto:2.0.22`.
+
+15. **Broker tests run against a real Mosquitto in Docker, with the repo's conf.** Not a mock. The same pytest file runs against the cluster with `ORB_BROKER_HOST` set (`make broker-check`), where "restart" becomes `kubectl rollout restart`. Docker Desktop on macOS only shares `/Users`, so the fixture keeps its bind-mount dir under the repo (`.tmp/`, gitignored), not in the OS temp dir.
+
+16. **ACL "cannot read" is asserted as non-delivery.** Mosquitto 2.x grants subscriptions (even `orb/#`) and filters on delivery. Asserting on SUBACK would be wrong; the tests subscribe broadly and assert nothing leaks.
+
+17. **Secrets stay out of git from day one.** `.env`, `deploy/k8s/overlays/*/secrets/` and key files are gitignored; `secretGenerator` reads the gitignored files. The repo is meant to be published later.

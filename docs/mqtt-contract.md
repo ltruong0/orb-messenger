@@ -38,9 +38,9 @@ This is normative. `contracts/schemas/` mirrors it and `contracts/examples/` mus
 {"state":"pending","code":"4821"}
 ```
 ```json
-{"state":"active","name":"Her office","owner":"her","brightness":70,
+{"state":"active","name":"Ashleigh's office","owner":"ashleigh","brightness":70,
  "quiet":{"start":"22:00","end":"07:00"},"tz":"CST6CDT,M3.2.0,M11.1.0",
- "media_base":"http://orb.home.lan"}
+ "media_base":"http://orb.marcellolab.com"}
 ```
 - `pending` requires `code`; `active` requires `name`, `media_base`.
 - `owner` is the user id whose home orb this is, or `null` for a shared orb.
@@ -64,7 +64,7 @@ This is normative. `contracts/schemas/` mirrors it and `contracts/examples/` mus
 
 ### notice (hub → orb, not retained)
 ```json
-{"type":"read_receipt","by":"Her","msg_id":"01JBX7Q2M3N4P5Q6R7S8T9V0W1"}
+{"type":"read_receipt","by":"Ashleigh","msg_id":"01JBX7Q2M3N4P5Q6R7S8T9V0W1"}
 ```
 `type`: `read_receipt` | `reaction` (`reaction` also carries `sticker`). The orb shows the overlay for about 30 s, then returns to its previous state.
 
@@ -82,4 +82,4 @@ Orbs keep PNGs in LittleFS under `/stk/{key}.png`. They download missing or chan
 
 ## Mosquitto ACL
 
-See `deploy/mosquitto/aclfile`. Users: `msg-hub` (read/write `orb/#`) and `orb` (shared by all orbs, scoped by `%c`). A client that knows the `orb` password could pick another orb's client id. That's accepted for a home LAN; per-orb credentials issued at approval time are the upgrade path (see `decisions.md`).
+See `deploy/k8s/base/mosquitto/aclfile`. Users: `msg-hub` (read/write `orb/#`) and `orb` (shared by all orbs, scoped by `%c`). Note that Mosquitto accepts any SUBSCRIBE and applies `read` rules when delivering, so an orb subscribing to `orb/#` gets a successful SUBACK but only ever receives its own topics and `orb/all/#`. Writes outside `orb/{client id}/` are silently dropped (MQTT 3.1.1 has no "not authorized" PUBACK). A client that knows the `orb` password could pick another orb's client id. That's accepted for a home LAN; per-orb credentials issued at approval time are the upgrade path (see `decisions.md`).

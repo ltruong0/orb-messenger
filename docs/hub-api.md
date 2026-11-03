@@ -12,7 +12,7 @@ Two-person household, LAN-only. Keep it simple:
 | GET | `/api/me` | | `{id, name, home_orb}` |
 | DELETE | `/api/session` | | Log out |
 
-Users come from config (env or a small YAML), e.g. `lee` → "Lee", home orb `orb-1a2b`. No sign-up.
+Users come from config (`users.yaml`): `lee` → "Lee" and `ashleigh` → "Ashleigh". Display names are free text, so nicknames (Floof / Quokka) are a one-line change. Home orbs are assigned at approval time (the `owner` field), not in config. No sign-up.
 
 ## Orbs
 

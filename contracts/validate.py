@@ -6,6 +6,7 @@ examples/invalid/<schema>[.<variant>].json must NOT validate
 
 Usage: python contracts/validate.py   (needs: pip install jsonschema)
 """
+
 import json
 import sys
 from pathlib import Path

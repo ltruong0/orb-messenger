@@ -6,7 +6,7 @@
 
 | Component | Role |
 |---|---|
-| **Phones (PWA)** | Compose and send messages, manage orbs and stickers, see history and read state. Reached at `https://orb.home.lan` on the LAN, Tailscale when away. |
+| **Phones (PWA)** | Compose and send messages, manage orbs and stickers, see history and read state. Reached at `https://orb.marcellolab.com` on the LAN. LAN-only by design. |
 | **Ingress** | Traefik (k3s default, to confirm). HTTPS for phones. A plain-HTTP route for `/media/*` so orbs don't need TLS. |
 | **msg-hub** | FastAPI service. Owns all state: users, orbs, messages, deliveries, stickers, phrases. Talks MQTT to the broker, REST + SSE to phones. Renders emoji stickers to PNG and resizes photos. Serves `/media`. |
 | **SQLite + PVC** | `/data/hub.db` plus `/data/media/{photos,stickers}`. One replica only. |
@@ -34,7 +34,7 @@ Because `inbox` and `led` are retained, a rebooted orb gets back exactly the sta
 
 ![registration](../design/png/02-registration-pairing.png)
 
-1. First boot: WiFiManager portal (`Orb-XXXX` AP) collects the SSID/password and broker host/port/user/password. Defaults: `mqtt.home.lan:1883`, user `orb`.
+1. First boot: WiFiManager portal (`Orb-XXXX` AP) collects the SSID/password and broker host/port/user/password. Defaults: `mqtt.marcellolab.com:1883`, user `orb`.
 2. The orb connects with client id `orb-xxxx` and an LWT of `orb/{id}/status = "offline"` (retained), then publishes `status "online"` and `hello` (retained).
 3. The hub sees an unknown `hello`, creates the orb as `pending` with a random 4-digit code (10-minute expiry, regenerated on each new `hello`), and publishes `config {state:"pending", code}`.
 4. The orb shows the code (LED blue). The phone gets SSE `orb.pending`.
@@ -47,10 +47,10 @@ A known orb that sends `hello` again (reboot, new firmware) is updated in place 
 
 | From → to | Protocol | Address |
 |---|---|---|
-| Phone → hub | HTTPS | `https://orb.home.lan` |
+| Phone → hub | HTTPS | `https://orb.marcellolab.com` |
 | Hub → broker | MQTT (in-cluster) | `mosquitto.orb.svc:1883` |
-| Orb → broker | MQTT over TCP | `mqtt.home.lan:1883` (LoadBalancer IP) |
-| Orb → hub media | HTTP | `media_base` from `config`, e.g. `http://orb.home.lan` |
+| Orb → broker | MQTT over TCP | `mqtt.marcellolab.com:1883` (ServiceLB on the node IP) |
+| Orb → hub media | HTTP | `media_base` from `config`, e.g. `http://orb.marcellolab.com` |
 
 ## Screens
 

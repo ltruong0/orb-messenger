@@ -24,7 +24,9 @@ Round ESP32-S3 screens for sending each other small messages, stickers and photo
 | `docs/deploy.md` | k3s objects, ingress, backups |
 | `docs/decisions.md` | Why it's built this way |
 | `contracts/` | JSON Schemas, valid and invalid examples, `validate.py` (`make contract-test`) |
-| `deploy/mosquitto/` | Starter `mosquitto.conf` and `aclfile` |
+| `tests/` | Broker acceptance tests against a real Mosquitto in Docker (`make broker-test`) or the cluster (`make broker-check`) |
+| `tools/` | `mosquitto_passwd.py` (pure-Python password file generator) |
+| `deploy/k8s/` | Kustomize base (namespace, Mosquitto, conf + ACL) and the `homelab` overlay (ServiceLB, `local-path`, gitignored secrets) |
 | `design/png/` | Mockups and diagrams as PNG |
 | `design/html/` | The same boards as standalone HTML (fonts bundled) |
 
