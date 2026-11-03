@@ -27,12 +27,13 @@ make contract-test   # validate contracts/examples against schemas
 make broker-test     # Mosquitto ACL/LWT/persistence tests against Docker (uses deploy/k8s/base/mosquitto/*)
 make broker-check    # same tests against the deployed broker (restarts the pod once)
 make sim-test        # orb-sim integration tests against Mosquitto in Docker
+make fonts           # fetch NotoColorEmoji.ttf into ~/.cache for local sticker rendering (tests do it too)
 make mosquitto-passwd # write the gitignored passwd file for the homelab overlay from .env
 make lint / make fmt # ruff
-make hub-test        # pytest for msg-hub (unit + integration with a real mosquitto)
-make hub-run         # run msg-hub locally against MQTT_HOST
+make hub-test        # msg-hub unit + integration tests (uvicorn in-process, Mosquitto in Docker, two orb-sims)
+make hub-run         # run msg-hub locally against MQTT_HOST from .env (state in hub/data)
 make sim ID=orb-sim1 # run orb-sim
-make image           # build the msg-hub container image
+make image           # docker build hub/Dockerfile from the repo root (TAG=dev)
 make deploy          # kubectl apply -k deploy/k8s/overlays/homelab
 pio run -d firmware -t upload   # flash an orb
 ```
@@ -61,3 +62,7 @@ pio run -d firmware -t upload   # flash an orb
 - **Docker Desktop on macOS doesn't share `/var/folders`.** Bind mounts from pytest's tmp dir show up empty; the broker fixture uses `.tmp/` under the repo.
 - **aiomqtt has no unclean-disconnect API.** To make the broker fire an LWT from a test, `shutdown()` paho's socket; `close()` leaves aiomqtt's reader dangling and hangs.
 - **`%c` in ACL patterns is the client id.** Orbs must connect with client id == orb id, or they can't touch their own topics.
+- **No `from __future__ import annotations` in `hub/app/api.py`.** FastAPI resolves annotations at decoration time; a locally defined `Annotated[...]` alias becomes an unresolvable string and silently turns into a query parameter (422 instead of 401).
+- **Retained `hello` from a dead orb is a pending orb.** Any test that leaves retained topics behind on the shared broker will see it registered by the next hub. The hub test fixtures clear them; do the same in new fixtures.
+- **The hub tells a fresh `hello` from a replayed one by the MQTT retain flag.** Don't "fix" that by regenerating codes on every hello: a hub restart would change the code every orb is showing.
+- **Stickers: `thumbnail()` never upscales.** The 109 px emoji glyph must be resized up to 160; use `resize`, not `thumbnail`.

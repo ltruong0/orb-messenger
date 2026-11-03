@@ -45,3 +45,19 @@ Short records. Add new ones at the bottom.
 21. **Sim persists `last_received_id` as well as `last_read_id`.** The contract says `received` is sent at most once per message id. A rebooted orb gets the retained inbox again; with only `last_read_id` it would re-send `received` for an unread message. Firmware should keep both in NVS too.
 
 22. **Quiet hours and the Wi-Fi portal are not simulated.** Both are local-only behaviour with no MQTT side effects; the sim prints the quiet config and moves on.
+
+23. **The hub republishes every retained topic on each MQTT connect ("reconcile").** (2026-11-03) `config`, `led`, the latest `inbox` per orb and the sticker manifest. Cheap for a household and it makes the broker's persistence a cache rather than the source of truth: a wiped broker or a failed publish converges on the next connect. Orbs must treat a replayed inbox as a duplicate (they do: `last_received_id`).
+
+24. **Pairing codes: new on a fresh `hello`, kept on a retained replay.** MQTT delivers retained messages with the retain flag set, so the hub can tell "the orb just connected" from "I just subscribed". A hub restart therefore doesn't change the code the orb is showing; a reboot of the orb does. An expired code is regenerated when someone tries to use it (409 `code_expired`) so the orb immediately shows a usable one.
+
+25. **Orb events are deduplicated in a table, and events for superseded messages are ignored.** `orb_events(orb, type, msg_id, sticker)` is the idempotency key, which covers QoS 1 redelivery and a sim/orb that replays after a reboot. Only the orb's latest delivery can change state; the contract says older messages are superseded.
+
+26. **A reaction is a sticker message, not a `notice`.** `architecture.md` step 6 wins over the `reaction` notice type: a message shows up in History and survives the home orb being offline, a notice does neither. The `reaction` notice stays in the contract for a future "lightweight" path. The reaction's `from` is the reacting orb's owner, or the orb id itself for a shared orb (the `from` pattern allows it and it's honest).
+
+27. **Read receipts say who, by name.** `notice.by` is the reading orb's owner's display name, or the orb's name for a shared orb, truncated to 24 chars. The receipt goes to the sender's home orb only if it is a different orb.
+
+28. **Hub tests run uvicorn in-process on a free port.** The orb-sims fetch stickers and photos over real HTTP from the same server the API is on, which is what the firmware will do. The sim fixture clears each orb's retained topics on teardown because the broker is shared across tests and a leftover retained `hello` is, correctly, a new pending orb to the next hub.
+
+29. **Emoji font comes from Debian in the image, from `~/.cache` on laptops.** `fonts-noto-color-emoji` in the container; `make fonts` (or the test fixture) downloads the same `NotoColorEmoji.ttf` once for local runs. A hub without the font still starts (empty sticker library, warning in the log) rather than crashing at seed time.
+
+30. **Pending orbs in `to` are skipped, unknown ones are an error.** Sending to an orb that hasn't been approved yet is a UI race, not a bug; sending to an id that doesn't exist is. 422 `no_active_recipients` only when nothing is left.

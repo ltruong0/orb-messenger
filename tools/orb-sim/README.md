@@ -34,6 +34,7 @@ Library use:
 sim = OrbSim(Settings(host=..., password=..., orb_id="orb-ab12", state_dir=tmp))
 sim.start()
 await sim.wait_for(lambda s: s.state == State.PAIRING)
-await sim.read(); await sim.react("purple-heart")
+await sim.read()
+await sim.react("purple-heart")
 await sim.stop()
 ```

@@ -20,10 +20,10 @@ ACL behaviour worth knowing: Mosquitto 2.x **grants** a SUBSCRIBE to a topic the
 | Object | Spec |
 |---|---|
 | Deployment | 1 replica, `strategy: Recreate` (SQLite is single-writer) |
-| Image | Python 3.12-slim + `fonts-noto-color-emoji` (or ship `NotoColorEmoji.ttf`), pushed to `ghcr.io/ltruong0/orb-messenger/msg-hub`, pulled with a per-namespace `ghcr-secret` (`kubectl -n orb create secret docker-registry ghcr-secret ...`), same pattern as the other lab apps |
+| Image | `hub/Dockerfile` (build from the repo root: `make image`): `python:3.12-slim` + `fonts-noto-color-emoji`, deps from `uv.lock`, runs as uid 1000, `CMD msg-hub` on 8080. Pushed to `ghcr.io/ltruong0/orb-messenger/msg-hub`, pulled with a per-namespace `ghcr-secret` (`kubectl -n orb create secret docker-registry ghcr-secret ...`), same pattern as the other lab apps |
 | PVC `hub-data` | 5 Gi at `/data` (DB + media) |
 | Secret `hub` | `HUB_PIN`, `SESSION_SECRET`, `MQTT_PASSWORD` |
-| ConfigMap `hub` | `MQTT_HOST=mosquitto.orb.svc`, `MEDIA_BASE_URL=http://orb.marcellolab.com`, `users.yaml` |
+| ConfigMap `hub` | `MQTT_HOST=mosquitto.orb.svc`, `MEDIA_BASE_URL=http://orb.marcellolab.com`, `HUB_TZ`, `users.yaml` (mounted, `USERS_FILE`) |
 | Service `hub` | ClusterIP 8080 |
 | Probes | `/healthz` liveness, `/readyz` readiness |
 | Resources | requests 100m / 128Mi, limits 500m / 512Mi (Pillow spikes on big photos) |
