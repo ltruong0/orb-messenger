@@ -1,20 +1,13 @@
-# Orb Messenger: starter package
+# Orb Messenger
 
 Round ESP32-S3 screens for sending each other small messages, stickers and photos between home offices. Mosquitto and the web app run on the homelab k3s cluster.
 
-## Using this with Claude Code
-
-1. Unzip, `cd orb-messenger`, `git init`.
-2. Start Claude Code here and say: **"Read PROMPT.md and start Phase 0."**
-3. It will ask you the open environment questions (ingress, storage, DNS, TLS, registry), propose a plan, and wait for your go-ahead.
-
-`CLAUDE.md` is loaded automatically by Claude Code on every session. It holds the conventions and the "things that will bite" list.
+Built in phases: contract + broker, orb simulator, `msg-hub` backend, phone PWA, k3s deploy, firmware. `CLAUDE.md` holds the conventions and the "things that will bite" list; `docs/decisions.md` says why things are the way they are.
 
 ## What's here
 
 | Path | What |
 |---|---|
-| `PROMPT.md` | Kickoff prompt: goals, phases, acceptance checks, rules |
 | `CLAUDE.md` | Repo conventions and gotchas |
 | `docs/architecture.md` | Components, message lifecycle, pairing, network paths |
 | `docs/mqtt-contract.md` | Topics and payloads (normative) |

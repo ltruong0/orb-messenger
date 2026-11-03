@@ -1,6 +1,6 @@
 # CLAUDE.md: Orb Messenger
 
-Small round ESP32-S3 "orbs" that show messages, stickers and photos sent from phones. Backend runs on a homelab k3s cluster. See `PROMPT.md` for the build plan and `docs/` for the design.
+Small round ESP32-S3 "orbs" that show messages, stickers and photos sent from phones. Backend runs on a homelab k3s cluster. See `docs/` for the design and `docs/decisions.md` for the phase history.
 
 ## Source of truth
 
