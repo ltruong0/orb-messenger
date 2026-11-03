@@ -2,29 +2,28 @@
 
 ![states](../design/png/20-orb-screen-states.png)
 
-## Stack (verify current versions before pinning)
+## Stack (as built, 2026-11-03)
 
 | Concern | Choice | Note |
 |---|---|---|
-| Build | PlatformIO, Arduino-ESP32 core 3.x | The stock `espressif32` platform has lagged on core 3.x; the community `pioarduino` platform is the usual fix. Check before starting. |
-| Display | Arduino_GFX_Library (CO5300 QSPI) or Waveshare's driver | Use whichever the Waveshare demo uses for this board. |
-| UI | LVGL 9, RGB565, two partial buffers (~1/10 screen) in PSRAM | |
-| Touch | CST9217 driver from the Waveshare demo / SensorLib | ⚠ confirm |
-| Wi-Fi setup | WiFiManager (tzapu) with custom params | broker host, port, user, password |
-| MQTT | `esp-mqtt` (ESP-IDF client, available in the Arduino core) | QoS 1 publish, LWT, auto-reconnect, outbox. Avoid PubSubClient (QoS 0 publish only, 256 B default buffer). |
+| Build | PlatformIO with the `pioarduino` platform (Arduino core 3.3.12 on ESP-IDF 5.5.5) | The stock `espressif32` platform is stuck on core 2.x. pioarduino needs Python ≥ 3.10: `uv tool install --python 3.12 platformio`. |
+| Display | Arduino_GFX 1.6.9, `Arduino_CO5300` over `Arduino_ESP32QSPI` at 80 MHz | Both boards. Brightness is a panel command (0x51), no backlight pin. |
+| UI | LVGL 9.6, RGB565, two 40-line partial buffers in internal DMA RAM, byte-swapped in the flush callback | A `LV_EVENT_INVALIDATE_AREA` rounder keeps windows even-aligned for the CO5300. |
+| Touch | 1.43: FT3168 / CST820 polled with 20 lines of `Wire` (no INT line). 1.75: SensorLib `TouchDrvCST92xx` | Only taps and long-presses matter, so orientation is irrelevant. |
+| Wi-Fi setup | WiFiManager 2.0.17, blocking portal `ORB-XXXX`, extra fields for broker host/port/user/password | Build-time defaults from the gitignored `secrets.ini` seed NVS on first boot. |
+| MQTT | `esp-mqtt` from the IDF (in the Arduino core): QoS 1, LWT, keepalive 30 s, auto-reconnect, 16 KB rx buffer | Events are queued to `net_task`; nothing slow runs on the client's task. |
 | JSON | ArduinoJson 7 | |
-| Photos | JPEGDEC, decoding baseline JPEG into a PSRAM framebuffer | |
-| Stickers | PNGdec (or LVGL's PNG decoder) from LittleFS | |
-| HTTP | `HTTPClient` into a PSRAM buffer | |
-| Time | SNTP + POSIX `tz` from `config` | for quiet hours |
-| LED | FastLED / Adafruit_NeoPixel | |
+| Photos + stickers | LVGL's own TJpgd and LodePNG decoders reading LittleFS through `LV_USE_FS_ARDUINO_ESP_LITTLEFS` (drive `L:`), 1 MB image cache in PSRAM | No JPEGDEC/PNGdec: fewer libraries, and media stays in flash as files. |
+| HTTP | `HTTPClient::writeToStream` into LittleFS, sha256 (mbedtls) checked for stickers | |
+| Time | `configTzTime` with the POSIX `tz` from `config` | quiet hours |
+| LED | FastLED, compiled in only with `ORB_LED_PIN` | until then LED modes are just logged |
 
 ## Tasks
 
 - `ui_task` (core 1): owns LVGL. Reads a FreeRTOS queue of UI commands. It's the only code that touches LVGL objects.
 - `net_task` (core 0): Wi-Fi, MQTT, HTTP downloads, sticker sync. Posts UI commands to the queue.
 - `led_task`: renders the current LED mode/pattern at ~50 Hz.
-- NVS keys: `wifi/*` (WiFiManager), `mqtt/host|port|user|pass`, `state/last_read_id`, `stk/rev`.
+- NVS (`Preferences` namespace `orb`): `wifi_ssid`, `wifi_pass`, `mqtt_host|port|user|pass`, `tz`, `last_read`, `last_recv`, `stk_rev`. Written only by `net_task` (plus `clearWifi()` right before a restart).
 
 ## Boot sequence
 
@@ -63,9 +62,9 @@ When `orb/all/stickers` arrives with a new `rev`: diff it against `/stk/index.js
 
 ## Done checklist
 
-- [ ] Display + touch + LVGL demo
-- [ ] Portal and NVS settings, button reset
-- [ ] MQTT connect with LWT; hello; pairing screen
+- [x] Display + touch + LVGL (touch verified over serial; picture pending Lee's eyes)
+- [x] Portal and NVS settings, button reset (code done; portal flow not yet exercised)
+- [ ] MQTT connect with LWT; hello; pairing screen (code done; needs Wi-Fi on the orb)
 - [ ] Idle eyes, unread, show text / sticker / photo, receipt, night, unreachable
 - [ ] LED modes
 - [ ] Sticker sync

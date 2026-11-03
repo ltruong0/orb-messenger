@@ -77,3 +77,13 @@ Short records. Add new ones at the bottom.
 37. **`users.yaml` ships in the image.** Two names that change once a year don't justify a ConfigMap mount in v1; `USERS_FILE` is there if that changes.
 
 38. **Images are built with BuildKit for `linux/amd64`.** (2026-11-03) The node is amd64, the laptop is an arm64 Mac on Colima. The legacy `docker build` can't cross-build (it chokes on `--platform` after the first `RUN`), so `make image` uses `docker buildx build --platform linux/amd64 --load`, and `uv` is installed with `pip` instead of `COPY --from=ghcr.io/astral-sh/uv` for the same reason. `imagePullPolicy: Always` on the hub so a re-pushed tag beats the node's cache.
+
+39. **Firmware builds with pioarduino, not the stock `espressif32` platform.** (2026-11-03) The stock platform ships Arduino core 2.x; we want core 3.x for the IDF 5 `esp-mqtt` client (QoS 1, LWT, outbox) and current LittleFS/HTTPClient. pioarduino needs Python ≥ 3.10, so PlatformIO is installed with `uv tool install --python 3.12 platformio` instead of the system Python 3.9 copy.
+
+40. **Board variants are a compile-time switch, and the first orb is a 1.43, not a 1.75.** The board that arrived answers I2C on GPIO 47/48 with FT3168 + PCF85063 + QMI8658 and no AXP2101, which is the ESP32-S3-Touch-AMOLED-1.43's map. `-DORB_BOARD=143|175` selects `include/pins.h`; the touch and PMU code is `#if`-ed per board, everything above `board.cpp` is shared, and `hello.model` reports which board an orb is. A boot-time I2C scan is logged on every start because it is what found this.
+
+41. **LVGL decodes photos and stickers itself from LittleFS.** TJpgd + LodePNG + the Arduino LittleFS driver (`L:` drive) replace JPEGDEC/PNGdec. Media are plain files (`/p0.jpg`/`/p1.jpg` alternate so a new photo never overwrites the one being drawn; `/stk/<key>.png`), the decoded image lives in LVGL's 1 MB cache in PSRAM, and there is no second image pipeline to keep in sync with LVGL's.
+
+42. **Build-time secrets seed NVS; the portal stays the fallback.** `make fw-secrets` writes the gitignored `firmware/secrets.ini` from `.env` (broker password, optional Wi-Fi) as `-D` flags; `settings.load()` uses them as defaults when NVS is empty. Without Wi-Fi in `.env` the orb boots into the WiFiManager portal and the broker fields are prefilled, so only the Wi-Fi password has to be typed on a phone.
+
+43. **MQTT and UI never share a task.** esp-mqtt events are copied into a queue and handled on `net_task`, so photo/sticker downloads can't stall keepalives; `net_task` and the LVGL loop talk only through two queues of heap-allocated commands. NVS is written by `net_task` only.

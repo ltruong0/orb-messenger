@@ -40,7 +40,10 @@ make image-push      # build + push ghcr.io/ltruong0/orb-messenger/msg-hub:<hub 
 make set-image       # pin that tag in the homelab overlay
 make deploy          # kubectl apply -k deploy/k8s/overlays/homelab (mosquitto + hub + ingress)
 make deploy-status   # rollout status + pods/svc/ingress/pvc in ns orb
-pio run -d firmware -t upload   # flash an orb
+make fw-secrets      # firmware/secrets.ini (gitignored) from .env: broker password, optional WIFI_SSID/WIFI_PASS, ORB_LED_PIN
+make fw-build        # compile the orb firmware (pioarduino; pio from `uv tool install --python 3.12 platformio`)
+make fw-flash        # build + flash over USB (FW_PORT=/dev/cu.usbmodemXXX)
+make fw-monitor      # serial log at 115200 (needs a real tty; from scripts use pyserial directly)
 ```
 
 ## Conventions
@@ -53,7 +56,7 @@ pio run -d firmware -t upload   # flash an orb
 - Retained topics are state; non-retained topics are events. Never retain an event.
 - To forget an orb, publish zero-length retained payloads to all its retained topics.
 - Secrets never go in git. Use k8s Secrets and a gitignored `.env` for local runs.
-- Firmware: no `delay()` in the main loop, LVGL on one task, network on another, a queue between them. Big buffers in PSRAM.
+- Firmware: no `delay()` in the main loop, LVGL on one task, network on another, a queue between them. Big buffers in PSRAM. `-DORB_BOARD=143|175` picks the pin map; the orb in hand is the 1.43.
 
 ## Things that will bite
 
@@ -74,3 +77,9 @@ pio run -d firmware -t upload   # flash an orb
 - **The k3s node is amd64; this Mac is arm64.** `make image` passes `--platform linux/amd64`. An image built without it pulls fine and then dies with `exec format error`.
 - **CSS `display` on a class beats the `hidden` attribute.** The PWA stylesheet has `[hidden]{display:none !important}`; keep it.
 - **Stickers: `thumbnail()` never upscales.** The 109 px emoji glyph must be resized up to 160; use `resize`, not `thumbnail`.
+- **The orb that arrived is the AMOLED-1.43, not the 1.75.** I2C is on GPIO 47/48, there is no PMU, and the panel + touch rail is off until GPIO 42 is driven high. The boot log's `i2c devices on sda=.. scl=..` line is the first thing to read on any new unit.
+- **Arduino core 3.3's I2C driver reports a NACK as `ESP_ERR_INVALID_STATE` (259).** "i2c_master_transmit failed: [259]" means nobody answered at that address, not a driver bug.
+- **pioarduino refuses Python 3.9.** Use the `pio` from `uv tool install --python 3.12 platformio` (`~/.local/bin/pio`), not the old system-Python one.
+- **LittleFS looks for a partition labelled `spiffs`.** A custom `partitions.csv` with any other label fails with "partition spiffs could not be found".
+- **`pio device monitor` needs a tty.** From a script, read the port with pyserial; toggling RTS resets the board (USB-JTAG/serial) so you get the boot log.
+- **`lv_image_cache_drop` isn't in `lvgl.h`.** Include `src/misc/cache/instance/lv_image_cache.h`. `lv_obj_remove_flag` wants a cast when OR-ing flags in C++.

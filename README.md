@@ -21,6 +21,7 @@ Built in phases: contract + broker, orb simulator, `msg-hub` backend, phone PWA,
 | `hub/` | `msg-hub`: FastAPI + aiomqtt + SQLite. `app/` (registry, pairing, fan-out, receipts, reactions, stickers, photos, SSE, PIN sessions), `web/` (the phone PWA: Send, History, Orbs, Stickers), `tests/` (`make hub-test`), `Dockerfile` (`make image`), `users.yaml` |
 | `tools/orb-sim/` | Orb simulator: CLI, async library and a browser UI with mock orb screens driven by the real broker (`make sim ID=orb-sim1`, `make sim-ui`, `make sim-test`) |
 | `tools/` | `mosquitto_passwd.py` (pure-Python password file generator) |
+| `firmware/` | PlatformIO project for the Waveshare round AMOLED orbs (1.43 in hand, 1.75 pin map kept): Arduino core 3.x, LVGL 9, esp-mqtt (`make fw-flash`) |
 | `deploy/k8s/` | Kustomize base (namespace, Mosquitto, conf + ACL) and the `homelab` overlay (ServiceLB, `local-path`, gitignored secrets) |
 | `design/png/` | Mockups and diagrams as PNG |
 | `design/html/` | The same boards as standalone HTML (fonts bundled) |

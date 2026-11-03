@@ -37,3 +37,6 @@ firmware/.vscode/
 
 # test scratch (docker bind mounts)
 .tmp/
+
+# firmware secrets (build-time Wi-Fi / broker defaults)
+firmware/secrets.ini
