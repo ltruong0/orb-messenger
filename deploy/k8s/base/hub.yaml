@@ -51,6 +51,7 @@ spec:
       containers:
         - name: hub
           image: ghcr.io/ltruong0/orb-messenger/msg-hub:dev
+          imagePullPolicy: Always   # a re-pushed tag must win over the node's cache
           ports:
             - name: http
               containerPort: 8080

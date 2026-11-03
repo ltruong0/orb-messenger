@@ -75,3 +75,5 @@ Short records. Add new ones at the bottom.
 36. **Image tag = hub version, pinned in the overlay.** (2026-11-03) `make image-push` tags with `version` from `hub/pyproject.toml`; `make set-image` writes that into `overlays/homelab/kustomization.yaml`, which is committed. No `:latest`, no mutable tags, and `git log` of the overlay is the deploy history. The GHCR pull secret is created by hand (one PAT, one namespace) rather than generated from a file, so no token ever sits in the working tree.
 
 37. **`users.yaml` ships in the image.** Two names that change once a year don't justify a ConfigMap mount in v1; `USERS_FILE` is there if that changes.
+
+38. **Images are built with BuildKit for `linux/amd64`.** (2026-11-03) The node is amd64, the laptop is an arm64 Mac on Colima. The legacy `docker build` can't cross-build (it chokes on `--platform` after the first `RUN`), so `make image` uses `docker buildx build --platform linux/amd64 --load`, and `uv` is installed with `pip` instead of `COPY --from=ghcr.io/astral-sh/uv` for the same reason. `imagePullPolicy: Always` on the hub so a re-pushed tag beats the node's cache.

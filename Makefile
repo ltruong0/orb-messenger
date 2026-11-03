@@ -4,6 +4,7 @@
 
 UV ?= uv
 IMAGE ?= ghcr.io/ltruong0/orb-messenger/msg-hub
+PLATFORM ?= linux/amd64   # the k3s node; building on an Apple Silicon Mac gives arm64 otherwise
 TAG ?= $(shell sed -n 's/^version = "\(.*\)"/\1/p' hub/pyproject.toml)
 EMOJI_FONT_URL ?= https://github.com/googlefonts/noto-emoji/raw/v2.047/fonts/NotoColorEmoji.ttf
 EMOJI_FONT_CACHE ?= $(HOME)/.cache/orb-messenger/fonts/NotoColorEmoji.ttf
@@ -42,7 +43,7 @@ hub-run:                  ## run msg-hub locally against MQTT_HOST (state in hub
 	  $(UV) run msg-hub
 
 image:                    ## build the msg-hub container image (context = repo root; TAG = hub version)
-	docker build -f hub/Dockerfile -t $(IMAGE):$(TAG) .
+	docker buildx build --platform $(PLATFORM) --load -f hub/Dockerfile -t $(IMAGE):$(TAG) .
 
 image-push: image         ## push it to GHCR (docker login ghcr.io first)
 	docker push $(IMAGE):$(TAG)

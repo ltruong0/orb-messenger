@@ -29,7 +29,9 @@ ACL behaviour worth knowing: Mosquitto 2.x **grants** a SUBSCRIBE to a topic the
 | Probes | `/healthz` liveness, `/readyz` readiness |
 | Resources | requests 100m / 128Mi, limits 500m / 512Mi (Pillow spikes on big photos) |
 
-Release: bump `version` in `hub/pyproject.toml` (the Makefile uses it as the image tag), `make image-push` (needs `docker login ghcr.io` with a token that has `write:packages`), `make set-image`, commit, `make deploy`, `make deploy-status`.
+Release: bump `version` in `hub/pyproject.toml` (the Makefile uses it as the image tag), `make image-push` (needs `docker login ghcr.io` with a token that has `write:packages`; the build targets `linux/amd64` with buildx, see decisions 38), `make set-image`, commit, `make deploy`, `make deploy-status`.
+
+First deploy on 2026-11-03: `kubectl apply -k` created everything in one go; the GHCR package is private, so the `ghcr-secret` pull secret (token with `read:packages`) had to exist first.
 
 ## Ingress
 

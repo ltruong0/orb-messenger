@@ -6,7 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_LINK_MODE=copy UV_COMPILE_BY
 RUN apt-get update \
  && apt-get install -y --no-install-recommends fonts-noto-color-emoji \
  && rm -rf /var/lib/apt/lists/*
-COPY --from=ghcr.io/astral-sh/uv:0.10 /uv /usr/local/bin/uv
+# pip rather than COPY --from=ghcr.io/astral-sh/uv: the legacy builder can't
+# cross-platform a COPY --from image, and this image is built on an arm64 Mac for an amd64 node
+RUN pip install --no-cache-dir 'uv>=0.10,<0.11'
 
 WORKDIR /srv
 # workspace manifests first so dependency layers cache across code changes

@@ -71,5 +71,6 @@ pio run -d firmware -t upload   # flash an orb
 - **Retained `hello` from a dead orb is a pending orb.** Any test that leaves retained topics behind on the shared broker will see it registered by the next hub. The hub test fixtures clear them; do the same in new fixtures.
 - **The hub tells a fresh `hello` from a replayed one by the MQTT retain flag.** Don't "fix" that by regenerating codes on every hello: a hub restart would change the code every orb is showing.
 - **httpx's `ASGITransport` buffers whole responses.** SSE endpoints can't be tested through it; run uvicorn in-process (hub tests) or drive the generator directly (sim web tests).
+- **The k3s node is amd64; this Mac is arm64.** `make image` passes `--platform linux/amd64`. An image built without it pulls fine and then dies with `exec format error`.
 - **CSS `display` on a class beats the `hidden` attribute.** The PWA stylesheet has `[hidden]{display:none !important}`; keep it.
 - **Stickers: `thumbnail()` never upscales.** The 109 px emoji glyph must be resized up to 160; use `resize`, not `thumbnail`.
