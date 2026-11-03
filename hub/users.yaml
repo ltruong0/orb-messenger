@@ -1,0 +1,7 @@
+# Household users. Ids are stable (used in MQTT payloads and the DB);
+# names are display text, so nicknames are a one-line change.
+users:
+  - id: lee
+    name: Lee
+  - id: ashleigh
+    name: Ashleigh
