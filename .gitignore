@@ -2,7 +2,8 @@
 .env
 .env.*
 !.env.example
-deploy/k8s/overlays/*/secrets/
+deploy/k8s/overlays/*/secrets/*
+!deploy/k8s/overlays/*/secrets/README.md
 *.pem
 *.pfx
 *.key
@@ -33,3 +34,6 @@ firmware/.vscode/
 .DS_Store
 .idea/
 *.swp
+
+# test scratch (docker bind mounts)
+.tmp/

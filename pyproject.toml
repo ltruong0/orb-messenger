@@ -1,0 +1,29 @@
+[project]
+name = "orb-messenger"
+version = "0.0.0"
+description = "Dev workspace for Orb Messenger (contracts, broker tests, tooling)"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "jsonschema>=4.23",
+  "paho-mqtt>=2.1",
+  "pytest>=8.3",
+  "ruff>=0.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["tools"]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
