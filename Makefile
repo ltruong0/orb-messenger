@@ -1,6 +1,6 @@
 # Orb Messenger. Targets listed in CLAUDE.md; add them as each phase lands.
 # Python tooling runs through uv (pins Python 3.12 + locked deps).
-.PHONY: contract-test broker-test broker-check test lint fmt mosquitto-passwd deploy deploy-diff
+.PHONY: contract-test broker-test broker-check sim-test test lint fmt mosquitto-passwd sim deploy deploy-diff
 
 UV ?= uv
 KUSTOMIZE_DIR ?= deploy/k8s/overlays/homelab
@@ -17,7 +17,15 @@ broker-check:             ## same tests against the deployed broker (restarts th
 	  ORB_BROKER_HOST=$${ORB_BROKER_HOST:-192.168.40.129} ORB_BROKER_PORT=$$MQTT_PORT \
 	  $(UV) run pytest tests/test_broker_acl.py
 
-test: contract-test broker-test
+sim-test:                 ## orb-sim against Mosquitto in Docker
+	$(UV) run pytest tests/test_orb_sim.py
+
+test: contract-test broker-test sim-test
+
+ID ?= orb-sim1
+sim:                      ## run an orb simulator: make sim ID=orb-sim1 (broker + password from .env)
+	@test -f .env || { echo ".env missing"; exit 1; }
+	@set -a; . ./.env; set +a; $(UV) run orb-sim --id $(ID) $(SIM_ARGS)
 
 lint:
 	$(UV) run ruff check . && $(UV) run ruff format --check .

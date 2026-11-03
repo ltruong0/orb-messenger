@@ -35,3 +35,13 @@ Short records. Add new ones at the bottom.
 16. **ACL "cannot read" is asserted as non-delivery.** Mosquitto 2.x grants subscriptions (even `orb/#`) and filters on delivery. Asserting on SUBACK would be wrong; the tests subscribe broadly and assert nothing leaks.
 
 17. **Secrets stay out of git from day one.** `.env`, `deploy/k8s/overlays/*/secrets/` and key files are gitignored; `secretGenerator` reads the gitignored files. The repo is meant to be published later.
+
+18. **`orb-sim` is an async library first, a CLI second.** (2026-11-03) `OrbSim` exposes `start/stop/read/react/drop/wait_for`, so the Phase 3 hub integration test drives real simulated orbs instead of mocking MQTT. The CLI is a thin stdin loop over the same object. It uses aiomqtt (same client family as the hub).
+
+19. **The sim is strict by default.** Any payload that fails its schema, a sticker whose sha256 doesn't match the manifest, or a photo that isn't a baseline JPEG stops the sim with exit code 2. A real orb would misrender silently; the sim's job is to catch hub bugs. `--lenient` logs and reconnects for exploratory use.
+
+20. **Orb id pattern relaxed to `^orb-[a-z0-9]{4,8}$` for the hub.** Real orbs still derive 4 hex chars from the MAC; the suffix just can't be constrained to hex without breaking `orb-sim1`. The ACL doesn't care (`%c`).
+
+21. **Sim persists `last_received_id` as well as `last_read_id`.** The contract says `received` is sent at most once per message id. A rebooted orb gets the retained inbox again; with only `last_read_id` it would re-send `received` for an unread message. Firmware should keep both in NVS too.
+
+22. **Quiet hours and the Wi-Fi portal are not simulated.** Both are local-only behaviour with no MQTT side effects; the sim prints the quiet config and moves on.

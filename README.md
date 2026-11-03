@@ -25,6 +25,7 @@ Round ESP32-S3 screens for sending each other small messages, stickers and photo
 | `docs/decisions.md` | Why it's built this way |
 | `contracts/` | JSON Schemas, valid and invalid examples, `validate.py` (`make contract-test`) |
 | `tests/` | Broker acceptance tests against a real Mosquitto in Docker (`make broker-test`) or the cluster (`make broker-check`) |
+| `tools/orb-sim/` | Orb simulator: CLI + async library, validates every payload (`make sim ID=orb-sim1`, `make sim-test`) |
 | `tools/` | `mosquitto_passwd.py` (pure-Python password file generator) |
 | `deploy/k8s/` | Kustomize base (namespace, Mosquitto, conf + ACL) and the `homelab` overlay (ServiceLB, `local-path`, gitignored secrets) |
 | `design/png/` | Mockups and diagrams as PNG |

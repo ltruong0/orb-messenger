@@ -6,7 +6,7 @@ This is normative. `contracts/schemas/` mirrors it and `contracts/examples/` mus
 
 ## Conventions
 
-- `{id}` = orb id = MQTT client id: `orb-` + the last 2 bytes of the STA MAC as lowercase hex (`orb-3f2a`).
+- `{id}` = orb id = MQTT client id: `orb-` + the last 2 bytes of the STA MAC as lowercase hex (`orb-3f2a`). The hub accepts `^orb-[a-z0-9]{4,8}$` so simulators can use ids like `orb-sim1`.
 - Payloads are compact UTF-8 JSON except `status`.
 - **Retained = state, non-retained = event.**
 - QoS 1 for everything the hub publishes; QoS 1 for orb events. `hello` and `status` may be QoS 0.

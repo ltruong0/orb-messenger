@@ -8,18 +8,29 @@ dependencies = []
 [dependency-groups]
 dev = [
   "jsonschema>=4.23",
+  "orb-sim",
   "paho-mqtt>=2.1",
+  "pillow>=11",
   "pytest>=8.3",
+  "pytest-asyncio>=0.24",
   "ruff>=0.8",
 ]
 
 [tool.uv]
 package = false
 
+[tool.uv.workspace]
+members = ["tools/orb-sim"]
+
+[tool.uv.sources]
+orb-sim = { workspace = true }
+
 [tool.pytest.ini_options]
 pythonpath = ["tools"]
 testpaths = ["tests"]
 addopts = "-ra"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 100
