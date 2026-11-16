@@ -82,6 +82,7 @@ make fw-monitor      # serial log at 115200 (needs a real tty; from scripts use 
 - **pioarduino refuses Python 3.9.** Use the `pio` from `uv tool install --python 3.12 platformio` (`~/.local/bin/pio`), not the old system-Python one.
 - **LittleFS looks for a partition labelled `spiffs`.** A custom `partitions.csv` with any other label fails with "partition spiffs could not be found".
 - **`pio device monitor` needs a tty.** From a script, read the port with pyserial; toggling RTS resets the board (USB-JTAG/serial) so you get the boot log.
+- **A green sliver along one screen edge is the CO5300 column offset.** Both boards need `LCD_COL_OFFSET 6`; the unwritten GRAM columns show up as green on the glass.
 - **The CO5300 can't rotate.** Its MADCTL has only flip bits, so `setRotation` is useless and LVGL 9 doesn't rotate for you either; `flush_cb` does it (`ORB_ROTATION`, 90 on the 1.43).
 - **Don't name a pyserial helper `serial.py`.** Python imports the script itself instead of pyserial.
 - **`lv_image_cache_drop` isn't in `lvgl.h`.** Include `src/misc/cache/instance/lv_image_cache.h`. `lv_obj_remove_flag` wants a cast when OR-ing flags in C++.

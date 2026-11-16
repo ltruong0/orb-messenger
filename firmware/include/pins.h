@@ -26,7 +26,9 @@
 #define LCD_CS 9
 #define LCD_RESET 21
 #define LCD_EN 42
-#define LCD_COL_OFFSET 0
+// CO5300 GRAM is 6 columns wider than the glass; without the offset the last six
+// visible columns are never written and show as a green sliver (same as the 1.75).
+#define LCD_COL_OFFSET 6
 #define IIC_SDA 47
 #define IIC_SCL 48
 #define ORB_TOUCH_FOCALTECH 1

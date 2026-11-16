@@ -214,15 +214,18 @@ static void heart(lv_obj_t* parent, int y) {
   lv_obj_remove_flag(h, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
   lv_obj_add_flag(h, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   lv_obj_align(h, LV_ALIGN_CENTER, 0, y);
-  lv_obj_t* sq = box(h, 62, 62, RED, 6);
+  // Diamond of side S centred at (0, 8); the circles sit on the midpoints of its
+  // two upper edges (+-S/4, 8 - S/4) with diameter S so they hide its side corners.
+  const int S = 60;
+  lv_obj_t* sq = box(h, S, S, RED, 4);
   lv_obj_align(sq, LV_ALIGN_CENTER, 0, 8);
-  lv_obj_set_style_transform_pivot_x(sq, 31, 0);
-  lv_obj_set_style_transform_pivot_y(sq, 31, 0);
+  lv_obj_set_style_transform_pivot_x(sq, S / 2, 0);
+  lv_obj_set_style_transform_pivot_y(sq, S / 2, 0);
   lv_obj_set_style_transform_rotation(sq, 450, 0);
-  lv_obj_t* c1 = box(h, 60, 60, RED, LV_RADIUS_CIRCLE);
-  lv_obj_align(c1, LV_ALIGN_CENTER, -22, -20);
-  lv_obj_t* c2 = box(h, 60, 60, RED, LV_RADIUS_CIRCLE);
-  lv_obj_align(c2, LV_ALIGN_CENTER, 22, -20);
+  lv_obj_t* c1 = box(h, S + 2, S + 2, RED, LV_RADIUS_CIRCLE);
+  lv_obj_align(c1, LV_ALIGN_CENTER, -S / 4, 8 - S / 4);
+  lv_obj_t* c2 = box(h, S + 2, S + 2, RED, LV_RADIUS_CIRCLE);
+  lv_obj_align(c2, LV_ALIGN_CENTER, S / 4, 8 - S / 4);
 }
 
 static void show_unread() {
