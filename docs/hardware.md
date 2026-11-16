@@ -11,7 +11,8 @@ Two Waveshare round 466×466 AMOLEDs are supported; `-DORB_BOARD` in `firmware/p
 | Item | Value | Status |
 |---|---|---|
 | MCU | ESP32-S3R8, 16 MB flash (quad), 8 MB octal PSRAM | ✓ esptool + boot log |
-| Display | 1.43" round AMOLED 466×466, CO5300 over QSPI (Waveshare says "SH8601"; only the CO5300 driver produces output, per two independent ports) | ✓ pins from the schematic via `ON6PH/capsule-radar-1.43` and `HermannBjorgvin/Clawdmeter`; ⚠ picture not yet eyeballed |
+| Display | 1.43" round AMOLED 466×466, CO5300 over QSPI (Waveshare says "SH8601"; only the CO5300 driver produces output, per two independent ports) | ✓ pins from the schematic via `ON6PH/capsule-radar-1.43` and `HermannBjorgvin/Clawdmeter`; ✓ picture confirmed 2026-11-16 |
+| Orientation | Panel scan origin is a quarter turn off with USB-C at the bottom: `ORB_ROTATION 90` (clockwise, software, in `pins.h`). The CO5300 has no row/column-exchange bit, so hardware rotation is not an option | ✓ Lee eyeballed |
 | QSPI pins | CS 9, SCLK 10, D0–D3 11/12/13/14, RST 21, **AMOLED_EN 42 (drive high)** | ✓ |
 | I2C | SDA 47, SCL 48. Boot scan: 0x38 FT3168 touch, 0x51 PCF85063 RTC, 0x6B QMI8658 IMU, 0x7E unknown | ✓ measured |
 | Touch | FT3168 at 0x38 (early units) or CST820 at 0x15 (current units); no INT/RST lines, polled; same register map (0x02 count, XH XL YH YL) | ✓ FT3168 found |

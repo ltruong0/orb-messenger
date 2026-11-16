@@ -35,16 +35,54 @@ static String i2c_scan() {
   return found;
 }
 
+// Rotation buffer for ORB_ROTATION != 0 (same size as a draw buffer).
+static uint16_t* rot_buf = nullptr;
+
+// Rotate one rendered chunk by ORB_ROTATION degrees clockwise while swapping to
+// big-endian RGB565. The CO5300 can only flip axes (no row/column exchange), so a
+// panel mounted 90 degrees off has to be fixed here. LVGL 9 leaves this to the driver.
 static void flush_cb(lv_display_t* d, const lv_area_t* area, uint8_t* px_map) {
   int32_t w = lv_area_get_width(area), h = lv_area_get_height(area);
+  const uint16_t* src = (const uint16_t*)px_map;
+#if ORB_ROTATION == 0
   // LVGL renders little-endian RGB565; the panel wants big-endian.
   uint16_t* p = (uint16_t*)px_map;
   for (int32_t i = 0, n = w * h; i < n; i++) p[i] = __builtin_bswap16(p[i]);
   gfx->draw16bitBeRGBBitmap(area->x1, area->y1, p, w, h);
+#elif ORB_ROTATION == 90
+  // logical (x, y) -> physical (W-1-y, x)
+  for (int32_t j = 0; j < h; j++)
+    for (int32_t i = 0; i < w; i++) rot_buf[i * h + (h - 1 - j)] = __builtin_bswap16(src[j * w + i]);
+  gfx->draw16bitBeRGBBitmap(LCD_W - 1 - area->y2, area->x1, rot_buf, h, w);
+#elif ORB_ROTATION == 180
+  // logical (x, y) -> physical (W-1-x, H-1-y)
+  for (int32_t j = 0; j < h; j++)
+    for (int32_t i = 0; i < w; i++) rot_buf[(h - 1 - j) * w + (w - 1 - i)] = __builtin_bswap16(src[j * w + i]);
+  gfx->draw16bitBeRGBBitmap(LCD_W - 1 - area->x2, LCD_H - 1 - area->y2, rot_buf, w, h);
+#elif ORB_ROTATION == 270
+  // logical (x, y) -> physical (y, H-1-x)
+  for (int32_t j = 0; j < h; j++)
+    for (int32_t i = 0; i < w; i++) rot_buf[(w - 1 - i) * h + j] = __builtin_bswap16(src[j * w + i]);
+  gfx->draw16bitBeRGBBitmap(area->y1, LCD_H - 1 - area->x2, rot_buf, h, w);
+#else
+#error "ORB_ROTATION must be 0, 90, 180 or 270"
+#endif
   lv_display_flush_ready(d);
 }
 
-// CO5300 wants even column/row starts and odd ends.
+// Touch reports panel coordinates; turn them into the rotated (logical) frame.
+static void rotate_touch(int32_t& x, int32_t& y) {
+#if ORB_ROTATION == 90
+  int32_t px = x; x = y; y = LCD_W - 1 - px;
+#elif ORB_ROTATION == 180
+  x = LCD_W - 1 - x; y = LCD_H - 1 - y;
+#elif ORB_ROTATION == 270
+  int32_t px = x; x = LCD_H - 1 - y; y = px;
+#endif
+}
+
+// CO5300 wants even column/row starts and odd ends. Rotation keeps this because
+// LCD_W/LCD_H are even (even start -> W-1-odd end = even, and vice versa).
 static void rounder_cb(lv_event_t* e) {
   lv_area_t* a = (lv_area_t*)lv_event_get_param(e);
   a->x1 &= ~1;
@@ -98,6 +136,7 @@ static void touch_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
   if (focaltech_read(x, y)) {
     data->point.x = x;
     data->point.y = y;
+    rotate_touch(data->point.x, data->point.y);
     data->state = LV_INDEV_STATE_PRESSED;
   }
 #elif ORB_TOUCH_CST92XX
@@ -106,6 +145,7 @@ static void touch_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     const TouchPoint& p = pts.getPoint(0);
     data->point.x = p.x;
     data->point.y = p.y;
+    rotate_touch(data->point.x, data->point.y);
     data->state = LV_INDEV_STATE_PRESSED;
   }
 #endif
@@ -172,10 +212,14 @@ bool board_init() {
   size_t buf_bytes = LCD_W * BUF_LINES * 2;
   void* b1 = heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
   void* b2 = heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-  if (!b1 || !b2) {
+#if ORB_ROTATION != 0
+  rot_buf = (uint16_t*)heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+#endif
+  if (!b1 || !b2 || (ORB_ROTATION != 0 && !rot_buf)) {
     log_e("no RAM for draw buffers");
     return false;
   }
+  log_i("display %dx%d, rotation %d", LCD_W, LCD_H, ORB_ROTATION);
   lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565);
   lv_display_set_buffers(disp, b1, b2, buf_bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_flush_cb(disp, flush_cb);

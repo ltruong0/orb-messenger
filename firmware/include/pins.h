@@ -8,6 +8,8 @@
 
 #define LCD_W 466
 #define LCD_H 466
+// ORB_ROTATION: degrees clockwise the rendered image is turned before it hits the
+// panel (0/90/180/270). Per-board default below; override with -DORB_ROTATION=.
 #define BOOT_BUTTON 0  // BOOT is a plain GPIO on both boards, pressed = low
 
 #if ORB_BOARD == 143
@@ -28,6 +30,10 @@
 #define IIC_SDA 47
 #define IIC_SCL 48
 #define ORB_TOUCH_FOCALTECH 1
+// The panel's scan origin is a quarter turn off from "USB-C at the bottom".
+#ifndef ORB_ROTATION
+#define ORB_ROTATION 90
+#endif
 #elif ORB_BOARD == 175
 // ESP32-S3-Touch-AMOLED-1.75: Waveshare demo pin_config.h (via socquique/TamaPoke),
 // cross-checked with the ESPHome device page. AXP2101 PMU: BLDO1 feeds the panel.
@@ -58,4 +64,8 @@
 #endif
 #ifndef ORB_LED_COUNT
 #define ORB_LED_COUNT 1
+#endif
+
+#ifndef ORB_ROTATION
+#define ORB_ROTATION 0
 #endif

@@ -19,7 +19,9 @@ the Makefile falls back to `~/.local/bin/pio`).
 `include/pins.h`. The hello payload's `model` says which one an orb runs. Both are
 466×466 CO5300 panels over QSPI; the 1.43 has no PMU and a panel-enable GPIO, the 1.75 has
 an AXP2101 whose BLDO1 rail feeds the panel. Boot log line `i2c devices on sda=.. scl=..`
-is the first thing to check on a new unit.
+is the first thing to check on a new unit. `ORB_ROTATION` (degrees clockwise, default 90 on the
+1.43, 0 on the 1.75) turns the image in software; override it with `-DORB_ROTATION=` if a
+unit is mounted differently.
 
 ## First boot
 

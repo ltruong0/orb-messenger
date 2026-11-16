@@ -7,9 +7,9 @@
 | Concern | Choice | Note |
 |---|---|---|
 | Build | PlatformIO with the `pioarduino` platform (Arduino core 3.3.12 on ESP-IDF 5.5.5) | The stock `espressif32` platform is stuck on core 2.x. pioarduino needs Python ≥ 3.10: `uv tool install --python 3.12 platformio`. |
-| Display | Arduino_GFX 1.6.9, `Arduino_CO5300` over `Arduino_ESP32QSPI` at 80 MHz | Both boards. Brightness is a panel command (0x51), no backlight pin. |
+| Display | Arduino_GFX 1.6.9, `Arduino_CO5300` over `Arduino_ESP32QSPI` at 80 MHz | Both boards. Brightness is a panel command (0x51), no backlight pin. `ORB_ROTATION` (per board in `pins.h`, 90 on the 1.43) rotates each chunk in `flush_cb` while byte-swapping; the CO5300 can't rotate itself. |
 | UI | LVGL 9.6, RGB565, two 40-line partial buffers in internal DMA RAM, byte-swapped in the flush callback | A `LV_EVENT_INVALIDATE_AREA` rounder keeps windows even-aligned for the CO5300. |
-| Touch | 1.43: FT3168 / CST820 polled with 20 lines of `Wire` (no INT line). 1.75: SensorLib `TouchDrvCST92xx` | Only taps and long-presses matter, so orientation is irrelevant. |
+| Touch | 1.43: FT3168 / CST820 polled with 20 lines of `Wire` (no INT line). 1.75: SensorLib `TouchDrvCST92xx` | Only taps and long-presses matter; coordinates are still mapped through `ORB_ROTATION` for consistency. |
 | Wi-Fi setup | WiFiManager 2.0.17, blocking portal `ORB-XXXX`, extra fields for broker host/port/user/password | Build-time defaults from the gitignored `secrets.ini` seed NVS on first boot. |
 | MQTT | `esp-mqtt` from the IDF (in the Arduino core): QoS 1, LWT, keepalive 30 s, auto-reconnect, 16 KB rx buffer | Events are queued to `net_task`; nothing slow runs on the client's task. |
 | JSON | ArduinoJson 7 | |
@@ -62,9 +62,9 @@ When `orb/all/stickers` arrives with a new `rev`: diff it against `/stk/index.js
 
 ## Done checklist
 
-- [x] Display + touch + LVGL (touch verified over serial; picture pending Lee's eyes)
-- [x] Portal and NVS settings, button reset (code done; portal flow not yet exercised)
-- [ ] MQTT connect with LWT; hello; pairing screen (code done; needs Wi-Fi on the orb)
+- [x] Display + touch + LVGL (picture confirmed; rotation fixed 2026-11-16)
+- [x] Portal and NVS settings, button reset (portal used to provision orb-1338)
+- [x] MQTT connect with LWT; hello; pairing screen (orb-1338 paired and active against the cluster)
 - [ ] Idle eyes, unread, show text / sticker / photo, receipt, night, unreachable
 - [ ] LED modes
 - [ ] Sticker sync
