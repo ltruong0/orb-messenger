@@ -207,7 +207,7 @@ wheels = [
 
 [[package]]
 name = "msg-hub"
-version = "0.4.0"
+version = "0.4.1"
 source = { editable = "hub" }
 dependencies = [
     { name = "aiomqtt" },

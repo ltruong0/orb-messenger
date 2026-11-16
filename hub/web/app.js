@@ -17,7 +17,9 @@ async function api(method, path, body, opts = {}) {
   const init = { method, credentials: 'same-origin', headers: {} };
   if (body instanceof FormData) init.body = body;
   else if (body !== undefined) { init.headers['content-type'] = 'application/json'; init.body = JSON.stringify(body); }
-  const r = await fetch(path, init);
+  let r;
+  try { r = await fetch(path, init); }
+  catch { throw new ApiError(0, 'offline', "Can't reach the hub. Are you on the home Wi-Fi?"); }
   if (r.status === 401 && !opts.noAuthRedirect) { showLogin(); throw new ApiError(401, 'unauthorized', 'signed out'); }
   if (r.status === 204) return null;
   const data = await r.json().catch(() => ({}));
@@ -69,7 +71,11 @@ $$('#nav button').forEach(b => b.addEventListener('click', () => showTab(b.datas
 // ---------------------------------------------------------------- login
 async function showLogin() {
   $('#app').hidden = true; $('#login').hidden = false;
-  if (!S.users.length) S.users = await api('GET', '/api/users', undefined, { noAuthRedirect: true });
+  const err = $('#login-error');
+  while (!S.users.length) {
+    try { S.users = await api('GET', '/api/users', undefined, { noAuthRedirect: true }); err.hidden = true; }
+    catch (ex) { err.textContent = ex.message; err.hidden = false; await new Promise(r => setTimeout(r, 4000)); }
+  }
   const wrap = $('#login-users');
   if (!wrap.children.length) {
     wrap.innerHTML = S.users.map((u, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-id="${esc(u.id)}">${esc(u.name)}</button>`).join('');
