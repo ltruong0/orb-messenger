@@ -165,6 +165,8 @@ $('#mood-chips').addEventListener('click', e => {
   const b = e.target.closest('[data-mood]'); if (!b) return;
   S.mood = S.mood === b.dataset.mood ? null : b.dataset.mood; if (S.mood) S.sticker = null; renderSend();
 });
+try { $('#auto-open').checked = localStorage.getItem('orb.autoOpen') === '1'; } catch {}
+$('#auto-open').addEventListener('change', e => { try { localStorage.setItem('orb.autoOpen', e.target.checked ? '1' : '0'); } catch {} });
 $('#photo-btn').addEventListener('click', () => $('#photo-input').click());
 const photoBtnHtml = $('#photo-btn').innerHTML;
 async function uploadPhoto(f) {
@@ -194,7 +196,7 @@ document.addEventListener('drop', e => {
 });
 $('#photo-remove').addEventListener('click', () => { S.media = null; $('#photo-preview').hidden = true; updateSendButton(); });
 $('#send-btn').addEventListener('click', async () => {
-  const body = { to: [...S.to], text: $('#text').value.trim() || undefined, sticker: S.sticker || undefined, mood: S.mood || undefined, media_id: S.media?.id };
+  const body = { to: [...S.to], text: $('#text').value.trim() || undefined, sticker: S.sticker || undefined, mood: S.mood || undefined, media_id: S.media?.id, open: $('#auto-open').checked || undefined };
   $('#send-btn').disabled = true;
   try {
     const r = await api('POST', '/api/messages', body);
@@ -224,6 +226,7 @@ function renderHistory() {
     else if (m.type === 'mood') { const md = (S.moods || []).find(x => x.key === m.mood); bubble = `<div class="bubble">${md ? md.emoji + ' ' : ''}feels ${esc(md ? md.label.toLowerCase() : m.mood)}${m.text ? `<br>${esc(m.text)}` : ''}</div>`; }
     else if (m.type === 'sticker') bubble = `<div class="bubble ${m.text ? '' : 'sticker-only'}">${m.text ? esc(m.text) : ''}<img class="stk-img" src="${esc(m.media_url)}" alt="${esc(m.sticker)}"></div>`;
     else bubble = `<div class="bubble">${esc(m.text)}</div>`;
+    if (m.open) bubble += '<div class="muted small" style="margin-top:4px">opened on arrival</div>';
     let meta, cls = '';
     if (isMine) {
       const read = m.deliveries.filter(x => x.status === 'read'), del = m.deliveries.filter(x => x.status !== 'queued');

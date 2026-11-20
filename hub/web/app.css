@@ -118,3 +118,5 @@ input[type=file]{font-size:14px;color:var(--muted)}
 
 .fw-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;color:var(--ink)}
 .fw-row button.link{background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;padding:0;cursor:pointer}
+
+.toggle{display:flex;align-items:center;gap:10px;margin:10px 0 2px;color:var(--ink2);font-size:15px}.toggle input{width:20px;height:20px;accent-color:var(--accent)}

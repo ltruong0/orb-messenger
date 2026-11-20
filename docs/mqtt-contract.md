@@ -57,6 +57,7 @@ This is normative. `contracts/schemas/` mirrors it and `contracts/examples/` mus
 - `text`: optional caption, ≤ 80 chars (required for `text`). May contain emoji; orbs draw each grapheme from `media_base + /media/emoji/{seq}.png` where `seq` is its codepoints in lowercase hex joined by `-` with U+FE0F dropped (decisions 46).
 - `sticker` + `media`: required for `sticker`
 - `media`: path relative to `config.media_base`, required for `photo` (466×466 baseline JPEG)
+- `open` (optional, default false): show the message right away instead of the "New from" screen. The orb still reports `read` only on a tap; after its show timeout an untapped message falls back to unread (decisions 49).
 
 ### led (hub → orb, retained)
 ```json

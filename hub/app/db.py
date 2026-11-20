@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS messages (
   mood          TEXT,
   media_id      TEXT,
   reaction_to   TEXT,
+  auto_open     INTEGER NOT NULL DEFAULT 0,
   created_at    INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS deliveries (
@@ -96,6 +97,10 @@ class Database:
         """Bring a database from before 'mood' messages up to date (SQLite can't ALTER a CHECK)."""
         cols = [r["name"] for r in await self.fetchall("PRAGMA table_info(messages)")]
         if "mood" in cols:
+            if "auto_open" not in cols:
+                await self.execute(
+                    "ALTER TABLE messages ADD COLUMN auto_open INTEGER NOT NULL DEFAULT 0"
+                )
             return
         await self.execute("PRAGMA foreign_keys=OFF")
         await self.conn.executescript(
@@ -104,7 +109,7 @@ class Database:
             "  id TEXT PRIMARY KEY, sender TEXT NOT NULL, sender_name TEXT NOT NULL,"
             "  type TEXT NOT NULL CHECK (type IN ('text','sticker','photo','mood')),"
             "  text TEXT, sticker TEXT, mood TEXT, media_id TEXT, reaction_to TEXT,"
-            "  created_at INTEGER NOT NULL);"
+            "  auto_open INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);"
             "INSERT INTO messages_v2"
             "  (id,sender,sender_name,type,text,sticker,media_id,reaction_to,created_at)"
             "  SELECT id,sender,sender_name,type,text,sticker,media_id,reaction_to,created_at"

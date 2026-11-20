@@ -220,7 +220,13 @@ class OrbSim:
         if self.state == State.RECEIPT:
             self._arm_timer(0, State.RECEIPT, None)
             return "dismiss"
-        if self.state in (State.SHOW, State.NOTHING):
+        if self.state == State.SHOW:
+            if self.message and self.message["id"] != self.nvs.data.last_read_id:
+                await self.read()  # an auto-opened message: the tap is the read
+                return "read"
+            self._arm_timer(0, self.state, State.IDLE)
+            return "dismiss"
+        if self.state == State.NOTHING:
             self._arm_timer(0, self.state, State.IDLE)
             return "dismiss"
         if self.state == State.UNREAD:
@@ -416,6 +422,13 @@ class OrbSim:
             await self._publish_event({"type": "received", "msg_id": data["id"]})
             self.nvs.data.last_received_id = data["id"]
             self.nvs.save()
+        if data.get("open"):
+            # auto-open: show it now, but only a tap reports `read` (decisions 49)
+            self._set_state(State.SHOW)
+            self._render_message(data)
+            self._arm_timer(self.s.show_timeout, State.SHOW, State.UNREAD)
+            self._touch()
+            return
         self._set_state(State.UNREAD)
         self.console.screen(self.state, f"New from {data['from_name']}", "tap to open")
 

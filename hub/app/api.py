@@ -43,6 +43,7 @@ class SendBody(BaseModel):
     sticker: str | None = None
     media_id: str | None = None
     mood: str | None = None
+    open: bool = False
 
 
 class EmojiStickerBody(BaseModel):
@@ -109,7 +110,9 @@ def build_router(hub: Hub, sessions: Sessions) -> APIRouter:
     # ---- messages
     @api.post("/messages", status_code=201)
     async def send(body: SendBody, user: Me) -> dict[str, Any]:
-        return await hub.send(user, body.to, body.text, body.sticker, body.media_id, mood=body.mood)
+        return await hub.send(
+            user, body.to, body.text, body.sticker, body.media_id, mood=body.mood, open=body.open
+        )
 
     @api.get("/messages")
     async def history(_: Me, before: str | None = None, limit: int = 50) -> list[dict[str, Any]]:

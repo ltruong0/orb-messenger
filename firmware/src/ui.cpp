@@ -889,6 +889,11 @@ static void on_tap() {
       else show_nothing_new();
       break;
     case St::Show:
+      if (msg_unread) {  // auto-opened and now acknowledged
+        net_post(NetCmdType::Read, msg["id"] | "");
+        msg_unread = false;
+        read_at = millis();
+      }
       show_idle();
       break;
     case St::Receipt:
@@ -981,6 +986,7 @@ static void handle(UiCmd* c) {
       }
       if (msg_unread) {
         if (state == St::Receipt) prev_state = St::Unread;
+        else if (d["open"] | false) show_message();  // auto-open: read is still reported on a tap
         else show_unread();
       } else if (new_id != cur_id || state == St::Unread) {
         if (state == St::Idle || state == St::Unread || state == St::Show) show_idle();
@@ -1075,7 +1081,8 @@ void ui_loop() {
   uint32_t now = millis();
   if (deadline && now > deadline) {
     deadline = 0;
-    if (state == St::Show || state == St::Nothing) show_idle();
+    if (state == St::Show) msg_unread ? show_unread() : show_idle();  // untapped auto-open -> unread
+    else if (state == St::Nothing) show_idle();
     else if (state == St::Updating) show_resting();
     else if (state == St::Receipt) {
       set_state(prev_state);

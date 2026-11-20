@@ -522,6 +522,8 @@ class Hub:
             p["media"] = f"/media/photos/{msg['media_id']}.jpg"
         elif msg["type"] == "mood":
             p["mood"] = msg["mood"]
+        if msg.get("auto_open"):
+            p["open"] = True
         return p
 
     async def send(
@@ -533,6 +535,7 @@ class Hub:
         media_id: str | None = None,
         reaction_to: str | None = None,
         mood: str | None = None,
+        open: bool = False,
     ) -> dict[str, Any]:
         text = (text or "").strip() or None
         if text is not None and len(text) > MAX_TEXT:
@@ -581,13 +584,14 @@ class Hub:
             "mood": mood if kind == "mood" else None,
             "media_id": media_id if kind == "photo" else None,
             "reaction_to": reaction_to,
+            "auto_open": 1 if open else 0,
             "created_at": now(),
         }
         payload = self.inbox_payload(msg)  # validates shape before we store anything
         self.contracts.validate("inbox", payload)
         await self.db.execute(
             "INSERT INTO messages(id,sender,sender_name,type,text,sticker,mood,media_id,"
-            "reaction_to,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            "reaction_to,auto_open,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
             tuple(msg.values()),
         )
         deliveries = []
@@ -652,6 +656,7 @@ class Hub:
                     "text": m["text"],
                     "sticker": m["sticker"],
                     "mood": m.get("mood"),
+                    "open": bool(m.get("auto_open")),
                     "media_url": self.inbox_payload(m).get("media"),
                     "reaction_to": m["reaction_to"],
                     "ts": m["created_at"],

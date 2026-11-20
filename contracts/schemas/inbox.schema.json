@@ -66,6 +66,9 @@
         "sick",
         "excited"
       ]
+    },
+    "open": {
+      "type": "boolean"
     }
   },
   "allOf": [

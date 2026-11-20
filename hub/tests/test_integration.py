@@ -294,3 +294,19 @@ async def test_hand_published_hello_creates_pending(
         assert view["state"] == "pending" and view["online"] is True and view["fw"] == "1.0.0"
         assert (await client.delete("/api/orbs/orb-hand")).status_code == 204
         await probe.clear_retained("orb-hand")
+
+
+async def test_auto_open_shows_without_claiming_read(
+    client: httpx.AsyncClient, hub_server: HubServer, make_sim
+):
+    """open=true: the orb shows the message at once; `read` still waits for a tap."""
+    orb = await make_sim()
+    await pair(client, orb, "Hallway", None)
+    r = await client.post("/api/messages", json={"to": [orb.id], "text": "look up", "open": True})
+    assert r.status_code == 201, r.text
+    msg_id = r.json()["id"]
+    await orb.wait_for(lambda s: s.state == State.SHOW, 5)
+    await wait_delivery(client, msg_id, orb.id, "delivered")
+    assert (await message_view(client, msg_id))["open"] is True
+    assert await orb.tap() == "read"
+    await wait_delivery(client, msg_id, orb.id, "read")
