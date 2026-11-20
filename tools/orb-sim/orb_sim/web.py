@@ -51,6 +51,8 @@ class Fleet:
     def _touch(self) -> None:
         self._changed.set()
 
+    server: uvicorn.Server | None = None  # set by serve(); lets /api/events end on Ctrl-C
+
     def start(self) -> None:
         for sim in self.sims.values():
             sim.start()
@@ -113,12 +115,20 @@ class Fleet:
 
     async def events(self, heartbeat: float = 15.0) -> AsyncIterator[str]:
         yield f"event: state\ndata: {json.dumps(self.snapshot())}\n\n"
+        last_ping = time.monotonic()
         while True:
             try:
-                await asyncio.wait_for(self._changed.wait(), heartbeat)
+                await asyncio.wait_for(self._changed.wait(), 0.5)
             except TimeoutError:
-                yield ": ping\n\n"
+                # end the stream ourselves on Ctrl-C, so uvicorn never has to cancel it
+                if self.server is not None and self.server.should_exit:
+                    return
+                if time.monotonic() - last_ping >= heartbeat:
+                    last_ping = time.monotonic()
+                    yield ": ping\n\n"
                 continue
+            except asyncio.CancelledError:
+                return
             # claim the change *before* coalescing: anything that lands during the
             # sleep or while the consumer is busy sets the flag again and is not lost
             self._changed.clear()
@@ -211,9 +221,18 @@ def build_app(fleet: Fleet) -> Starlette:
 async def serve(fleet: Fleet, host: str, port: int) -> int:
     """Run the orbs and the UI until Ctrl-C. Exit 2 if an orb hit a contract violation."""
     fleet.start()
+    # The browser keeps /api/events open forever; without a graceful-shutdown timeout
+    # uvicorn waits for it after Ctrl-C and the process never exits.
     server = uvicorn.Server(
-        uvicorn.Config(build_app(fleet), host=host, port=port, log_level="warning")
+        uvicorn.Config(
+            build_app(fleet),
+            host=host,
+            port=port,
+            log_level="warning",
+            timeout_graceful_shutdown=2,
+        )
     )
+    fleet.server = server
     print(f"orb-sim web UI on http://{host}:{port}  (orbs: {', '.join(fleet.sims)})", flush=True)
     try:
         await server.serve()
