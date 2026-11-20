@@ -6,7 +6,7 @@ resources:
   - hub-ingress.yaml
 images:
   - name: ghcr.io/ltruong0/orb-messenger/msg-hub
-    newTag: 0.4.1
+    newTag: 0.4.2
 configMapGenerator:
   - name: hub-config
     literals:

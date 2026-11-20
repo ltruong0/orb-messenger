@@ -28,6 +28,16 @@ async def test_shell_manifest_and_worker_are_served(anon: httpx.AsyncClient):
         assert r.headers["content-type"].startswith(ctype), (path, r.headers["content-type"])
 
 
+async def test_shell_is_revalidated_not_heuristically_cached(anon: httpx.AsyncClient):
+    for path in ("/", "/app.js", "/sw.js"):
+        r = await anon.get(path)
+        assert r.headers["cache-control"] == "no-cache", path
+        assert "etag" in r.headers, path
+    r = await anon.get("/media/stickers/purple-heart.png")
+    assert r.status_code == 200
+    assert r.headers["cache-control"].startswith("public, max-age="), r.headers
+
+
 async def test_manifest_icons_exist(anon: httpx.AsyncClient):
     manifest = json.loads((WEB / "manifest.webmanifest").read_text())
     assert manifest["display"] == "standalone" and manifest["start_url"] == "/"

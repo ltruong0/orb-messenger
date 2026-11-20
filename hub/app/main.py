@@ -27,6 +27,25 @@ from .hub import Hub, HubError
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 
+class CachedStaticFiles(StaticFiles):
+    """StaticFiles with an explicit Cache-Control.
+
+    Starlette sends ETag/Last-Modified but no Cache-Control, so browsers apply
+    heuristic freshness and can keep a stale app.js for hours. The shell is
+    `no-cache` (always revalidated, cheap thanks to the ETag); media files are
+    immutable by name (ULIDs, sha-addressed stickers) so they cache for a week.
+    """
+
+    def __init__(self, *args, cache_control: str, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.cache_control = cache_control
+
+    def file_response(self, *args, **kwargs):  # type: ignore[override]
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = self.cache_control
+        return response
+
+
 def create_app(settings: Settings, hub: Hub | None = None) -> FastAPI:
     hub = hub or Hub(settings, EventBus())
     sessions = Sessions(settings)
@@ -81,9 +100,14 @@ def create_app(settings: Settings, hub: Hub | None = None) -> FastAPI:
 
     app.include_router(build_router(hub, sessions))
     settings.media_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
+    app.mount(
+        "/media",
+        CachedStaticFiles(directory=settings.media_dir, cache_control="public, max-age=604800"),
+        name="media",
+    )
     if WEB_DIR.is_dir():
-        app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+        web = CachedStaticFiles(directory=WEB_DIR, html=True, cache_control="no-cache")
+        app.mount("/", web, name="web")
     return app
 
 
