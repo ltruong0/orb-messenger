@@ -128,6 +128,10 @@ function screenHTML(o, broker){
     const what = n.type === 'read_receipt' ? `${esc(n.by)} read it` : `${esc(n.by)} sent ${esc(n.sticker)}`;
     return `<div class="safe"><div class="happy"><span></span><span></span></div><div class="head">${what}</div></div>`;
   }
+  if (s === 'nothing') {
+    const last = m ? `last one from ${esc(m.from_name)} · ${hhmm(m.ts)}` : '';
+    return `<div class="safe"><div class="happy"><span></span><span></span></div><div class="head">no new messages</div><div class="small">${last}</div></div>`;
+  }
   if (s === 'unread' && m) {
     return `<div class="safe">${HEART}<div class="head">New from ${esc(m.from_name)}</div><div class="small">tap to open</div></div>`;
   }

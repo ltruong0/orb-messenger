@@ -40,6 +40,7 @@ class State(StrEnum):
     UNREAD = "unread"
     SHOW = "show"
     RECEIPT = "receipt"
+    NOTHING = "nothing"  # tap in idle with nothing recent: "no new messages"
 
 
 # local LED defaults per mode (docs/hardware.md); payload values win
@@ -69,6 +70,8 @@ class Settings:
     strict: bool = True  # contract violation stops the sim
     show_timeout: float = 60.0  # SHOW -> IDLE
     receipt_timeout: float = 30.0  # RECEIPT -> previous
+    reshow_window: float = 600.0  # a tap in IDLE re-opens a message read this recently
+    nothing_timeout: float = 2.5  # NOTHING -> IDLE
     http_timeout: float = 10.0
     max_backoff: float = 30.0
     caps: tuple[str, ...] = ("touch", "led")
@@ -129,6 +132,7 @@ class OrbSim:
         self._hold_until = 0.0
         self._changed = asyncio.Event()
         self._prev_state = State.IDLE
+        self._read_at: float | None = None  # when the current message was opened (this run)
         self.listeners: list[Callable[[OrbSim], None]] = []  # called on every change
 
     # ------------------------------------------------------------ lifecycle
@@ -208,13 +212,52 @@ class OrbSim:
                 await asyncio.wait_for(self._changed.wait(), remaining)
 
     # ------------------------------------------------------------ touch input
+    async def tap(self) -> str:
+        """A tap on the screen, with the firmware's rules (docs/firmware.md state table).
+
+        Returns what it did: "read", "reshow", "dismiss", "nothing" or "ignored".
+        """
+        if self.state == State.RECEIPT:
+            self._arm_timer(0, State.RECEIPT, None)
+            return "dismiss"
+        if self.state in (State.SHOW, State.NOTHING):
+            self._arm_timer(0, self.state, State.IDLE)
+            return "dismiss"
+        if self.state == State.UNREAD:
+            await self.read()
+            return "read"
+        if self.state == State.IDLE:
+            recent = (
+                self._read_at is not None
+                and time.monotonic() - self._read_at < self.s.reshow_window
+            )
+            if self.message is not None and recent:
+                await self.read()
+                return "reshow"
+            self._set_state(State.NOTHING)
+            self.console.screen(self.state, "no new messages", self._last_line())
+            self._arm_timer(self.s.nothing_timeout, State.NOTHING, State.IDLE)
+            self._touch()
+            return "nothing"
+        return "ignored"
+
+    def _last_line(self) -> str:
+        if not self.message:
+            return ""
+        when = time.strftime("%H:%M", time.localtime(self.message["ts"]))
+        return f"last one from {self.message['from_name']} · {when}"
+
     async def read(self) -> bool:
-        """Tap: show the current message. Returns True if this was the first read."""
+        """Open the current message (library API; `tap()` applies the screen rules).
+
+        Returns True if this was the first read.
+        """
         if self.message is None:
             self.console.say("info", "tap: nothing to show")
             return False
         msg = self.message
         first = msg["id"] != self.nvs.data.last_read_id
+        self._read_at = time.monotonic()
         self._set_state(State.SHOW)
         self._render_message(msg)
         if first:
@@ -358,6 +401,8 @@ class OrbSim:
         return State.IDLE
 
     async def _on_inbox(self, data: dict[str, Any]) -> None:
+        if not self.message or data["id"] != self.message["id"]:
+            self._read_at = None
         self.message = data
         self.photo = None
         if data["type"] == "photo":
@@ -492,7 +537,7 @@ class OrbSim:
             if self.state != only_if:
                 return
             target = back_to if back_to is not None else self._prev_state
-            if target == State.SHOW:
+            if target in (State.SHOW, State.NOTHING):
                 target = State.IDLE
             self._set_state(target)
             if target == State.IDLE:

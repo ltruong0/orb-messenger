@@ -27,7 +27,7 @@ from starlette.staticfiles import StaticFiles
 
 from .contracts import Contracts
 from .render import Console
-from .sim import FW_VERSION, OrbSim, Settings, State
+from .sim import FW_VERSION, OrbSim, Settings
 
 log = logging.getLogger("orb-sim.web")
 WEB_DIR = Path(__file__).resolve().parent / "web"
@@ -153,11 +153,10 @@ def build_app(fleet: Fleet) -> Starlette:
 
     async def tap(request: Request) -> Response:
         sim = _sim(request)
-        if sim.state == State.RECEIPT:  # a tap dismisses the overlay (firmware.md)
-            sim._arm_timer(0, State.RECEIPT, None)
-            return JSONResponse({"ok": True, "action": "dismiss"})
-        first = await sim.read()
-        return JSONResponse({"ok": True, "action": "read", "first": first})
+        before = sim.nvs.data.last_read_id
+        action = await sim.tap()
+        first = action == "read" and sim.nvs.data.last_read_id != before
+        return JSONResponse({"ok": True, "action": action, "first": first})
 
     async def hold(request: Request) -> Response:
         sim = _sim(request)

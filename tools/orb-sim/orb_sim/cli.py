@@ -1,7 +1,8 @@
 """orb-sim CLI: run one simulated orb and drive it from the keyboard,
 or `--web PORT` to run several and drive them from a browser.
 
-read            tap: open the current message
+read            open the current message
+tap             a tap with the screen rules (open / dismiss / no new messages)
 react [sticker] long-press: send a sticker back (default purple-heart)
 drop [seconds]  cut the connection without DISCONNECT (LWT fires), reconnect later
 status          print state / config / message / led
@@ -68,7 +69,9 @@ async def repl(sim: OrbSim) -> int:
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     threading.Thread(target=_stdin_lines, args=(loop, queue), daemon=True).start()
     task = sim.start()
-    sim.console.say("info", "commands: read | react [sticker] | drop [seconds] | status | quit")
+    sim.console.say(
+        "info", "commands: tap | read | react [sticker] | drop [seconds] | status | quit"
+    )
     getter = asyncio.ensure_future(queue.get())
     try:
         while True:
@@ -93,7 +96,9 @@ async def dispatch(sim: OrbSim, line: str) -> None:
     arg = arg.strip()
     if cmd == "":
         return
-    if cmd == "read":
+    if cmd == "tap":
+        sim.console.say("info", f"tap: {await sim.tap()}")
+    elif cmd == "read":
         await sim.read()
     elif cmd == "react":
         await sim.react(arg or "purple-heart")

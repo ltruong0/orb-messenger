@@ -109,6 +109,16 @@ async def test_tap_and_hold_publish_events(web: httpx.AsyncClient, fleet: Fleet,
         await sim.wait_for(lambda s: s.state == State.RECEIPT, 5)
         assert (await web.post(f"/api/orbs/{a}/tap")).json()["action"] == "dismiss"
         await sim.wait_for(lambda s: s.state != State.RECEIPT, 5)
+        # the firmware's tap rules: re-show (read recently) -> dismiss -> nothing (stale)
+        await sim.wait_for(lambda s: s.state == State.IDLE, 5)
+        assert (await web.post(f"/api/orbs/{a}/tap")).json()["action"] == "reshow"
+        assert (await web.post(f"/api/orbs/{a}/tap")).json()["action"] == "dismiss"
+        await sim.wait_for(lambda s: s.state == State.IDLE, 5)
+        sim._read_at -= 10_000
+        assert (await web.post(f"/api/orbs/{a}/tap")).json()["action"] == "nothing"
+        assert sim.state == State.NOTHING
+        assert (await web.post(f"/api/orbs/{a}/tap")).json()["action"] == "dismiss"
+        await sim.wait_for(lambda s: s.state == State.IDLE, 5)
         snap = (await web.get("/api/state")).json()
         me = next(o for o in snap["orbs"] if o["id"] == a)
         assert me["nvs"]["last_read_id"] == MSG and me["message"]["text"] == "hi"

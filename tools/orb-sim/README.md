@@ -29,7 +29,7 @@ stickers and photos it shows are served from the orb's own cache
 orb downloaded and verified, not the hub's originals. Binds to `0.0.0.0` so you
 can open it from a phone on the LAN (`--bind 127.0.0.1` to keep it local).
 
-Commands at the terminal prompt: `read` (tap), `react [sticker]` (long-press), `drop [seconds]`
+Commands at the terminal prompt: `tap` (screen rules: open, dismiss, re-show within 10 min, else "no new messages"), `read` (just open), `react [sticker]` (long-press), `drop [seconds]`
 (cut the socket without DISCONNECT so the LWT fires, reconnect later), `status`, `quit`.
 
 What it does on its own:
@@ -38,7 +38,7 @@ What it does on its own:
 - publishes `status online` + `hello` (retained), subscribes to its five topics
 - validates **every** payload in and out against `contracts/schemas`. A violation prints
   the problems and exits with code 2 (`--lenient` logs and reconnects instead)
-- state machine: unreachable → unconfigured → pairing → idle / unread / show / receipt,
+- state machine: unreachable → unconfigured → pairing → idle / unread / show / receipt / nothing,
   with the 60 s show and 30 s receipt timeouts
 - `received` once per message id, `read` on first tap, both remembered in
   `~/.orb-sim/{id}/nvs.json` so a restart never re-alerts (`--fresh` wipes it)
