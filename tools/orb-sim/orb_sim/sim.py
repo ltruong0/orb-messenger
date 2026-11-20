@@ -69,6 +69,7 @@ class Settings:
     keepalive: int = 30
     strict: bool = True  # contract violation stops the sim
     show_timeout: float = 60.0  # SHOW -> IDLE
+    mood_timeout: float = 30.0  # SHOW -> IDLE for mood messages
     receipt_timeout: float = 30.0  # RECEIPT -> previous
     reshow_window: float = 600.0  # a tap in IDLE re-opens a message read this recently
     nothing_timeout: float = 2.5  # NOTHING -> IDLE
@@ -247,6 +248,9 @@ class OrbSim:
             return "nothing"
         return "ignored"
 
+    def _show_timeout(self, msg: dict[str, Any]) -> float:
+        return self.s.mood_timeout if msg.get("type") == "mood" else self.s.show_timeout
+
     def _last_line(self) -> str:
         if not self.message:
             return ""
@@ -270,7 +274,7 @@ class OrbSim:
             await self._publish_event({"type": "read", "msg_id": msg["id"]})
             self.nvs.data.last_read_id = msg["id"]
             self.nvs.save()
-        self._arm_timer(self.s.show_timeout, State.SHOW, State.IDLE)
+        self._arm_timer(self._show_timeout(msg), State.SHOW, State.IDLE)
         self._touch()
         return first
 
@@ -426,7 +430,7 @@ class OrbSim:
             # auto-open: show it now, but only a tap reports `read` (decisions 49)
             self._set_state(State.SHOW)
             self._render_message(data)
-            self._arm_timer(self.s.show_timeout, State.SHOW, State.UNREAD)
+            self._arm_timer(self._show_timeout(data), State.SHOW, State.UNREAD)
             self._touch()
             return
         self._set_state(State.UNREAD)

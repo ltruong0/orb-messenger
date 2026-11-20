@@ -654,8 +654,8 @@ static bool sticker_path(String& out) {
 static void show_message() {
   clear();
   set_state(St::Show);
-  deadline = millis() + 60000;
   const char* type = msg["type"] | "text";
+  deadline = millis() + (strcmp(type, "mood") == 0 ? 30000 : 60000);  // faces are quicker to take in
   emoji_reset();
   String text_s = emoji_rewrite(msg["text"] | "");
   const char* text = text_s.c_str();

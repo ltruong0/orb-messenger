@@ -46,7 +46,7 @@
 | IDLE | active, nothing unread | eyes; a quick mood every 2–7 s (blink, wink, look, happy, sleepy, surprise, curious, bounce, asleep with z's), a full mood face (`draw_mood`, same 14 as mood messages) for 5 s every 30–90 s; drift a few px (burn-in) | new unread inbox; tap → SHOW (recent) or NOTHING; 3 h → SLEEP |
 | UNREAD | new message (without `open`) | "New from {from_name}" + heart | tap → SHOW |
 | SHOW (auto-open) | new message with `open: true` | the content at once; `read` goes out on the first tap | tap → read + IDLE; 60 s untapped → UNREAD |
-| SHOW | tap in UNREAD, or tap in IDLE within 10 min of reading | text / sticker / photo / mood face, emoji inline | 60 s timeout or tap → IDLE |
+| SHOW | tap in UNREAD, or tap in IDLE within 10 min of reading | text / sticker / photo / mood face, emoji inline | 60 s (moods 30 s) or tap → IDLE |
 | RECEIPT | `notice` received | happy eyes + "{by} read it", LED green | 30 s or tap → previous |
 | NIGHT | inside quiet hours | screen off; unread is kept | tap wakes for 30 s; end of quiet hours |
 | SLEEP | 3 h with no tap, message or receipt (from IDLE/UNREAD) | screen off | tap, an unread message, a receipt, a pairing code |
