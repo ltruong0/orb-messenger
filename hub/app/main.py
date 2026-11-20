@@ -13,7 +13,7 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
@@ -99,6 +99,16 @@ def create_app(settings: Settings, hub: Hub | None = None) -> FastAPI:
         )
 
     app.include_router(build_router(hub, sessions))
+
+    @app.get("/media/emoji/{seq}.png")
+    async def emoji(seq: str) -> FileResponse:
+        """Inline emoji for orb text, rendered on first request. Public like the rest of /media."""
+        return FileResponse(
+            await hub.emoji_png(seq),
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=604800"},
+        )
+
     settings.media_dir.mkdir(parents=True, exist_ok=True)
     app.mount(
         "/media",

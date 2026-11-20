@@ -12,6 +12,7 @@ import regex
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 STICKER_SIZE = 160
+EMOJI_INLINE_SIZE = 40  # emoji inside message text on the orb (text is 30-44 px)
 EMOJI_RENDER_SIZE = 109  # the only size Pillow renders NotoColorEmoji at (CBDT bitmaps)
 
 SEED_STICKERS: list[tuple[str, str, str]] = [  # (emoji, key, name)
@@ -68,10 +69,12 @@ def _to_png(img: Image.Image) -> bytes:
     return out.getvalue()
 
 
-def render_emoji(emoji: str, font_path: Path) -> bytes:
-    """Render one emoji at 109 px with embedded colour, trim, fit into 160x160."""
+def render_emoji(
+    emoji: str, font_path: Path, size: int = STICKER_SIZE, single: bool = True
+) -> bytes:
+    """Render one emoji at 109 px with embedded colour, trim, fit into size x size."""
     emoji = emoji.strip()
-    if not is_single_grapheme(emoji):
+    if single and not is_single_grapheme(emoji):
         raise BadSticker("emoji must be a single character (one grapheme cluster)")
     font = ImageFont.truetype(str(font_path), EMOJI_RENDER_SIZE)
     canvas = Image.new("RGBA", (EMOJI_RENDER_SIZE * 2, EMOJI_RENDER_SIZE * 2), (0, 0, 0, 0))
@@ -81,7 +84,7 @@ def render_emoji(emoji: str, font_path: Path) -> bytes:
     )
     if canvas.getchannel("A").getbbox() is None:
         raise BadSticker("the emoji font has no glyph for that character")
-    return _to_png(_fit_into_box(canvas))
+    return _to_png(_fit_into_box(canvas, size))
 
 
 def render_upload(data: bytes) -> bytes:

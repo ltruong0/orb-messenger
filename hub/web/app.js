@@ -99,7 +99,7 @@ $('#login-form').addEventListener('submit', async e => {
 // ---------------------------------------------------------------- boot + live updates
 async function boot() {
   $('#login').hidden = true; $('#app').hidden = false;
-  [S.users, S.orbs, S.stickers, S.phrases] = await Promise.all([api('GET', '/api/users'), api('GET', '/api/orbs'), api('GET', '/api/stickers'), api('GET', '/api/phrases')]);
+  [S.users, S.orbs, S.stickers, S.phrases, S.firmware] = await Promise.all([api('GET', '/api/users'), api('GET', '/api/orbs'), api('GET', '/api/stickers'), api('GET', '/api/phrases'), api('GET', '/api/firmware')]);
   S.orbs.filter(o => o.state === 'pending').forEach(o => S.seenPending.add(o.id));
   await loadHistory(true);
   renderAll(); showTab(S.tab); connectEvents();
@@ -113,7 +113,8 @@ function connectEvents() {
   const pill = $('#hub-pill');
   es.onopen = () => { pill.textContent = 'hub online'; pill.classList.add('on'); };
   es.onerror = () => { pill.textContent = 'reconnecting…'; pill.classList.remove('on'); };
-  const refreshOrbs = async () => { S.orbs = await api('GET', '/api/orbs'); renderSend(); renderOrbs(); renderHistory(); };
+  const refreshOrbs = async () => { [S.orbs, S.firmware] = await Promise.all([api('GET', '/api/orbs'), api('GET', '/api/firmware')]); renderSend(); renderOrbs(); renderHistory(); };
+  es.addEventListener('firmware.changed', refreshOrbs);
   es.addEventListener('orb.pending', async e => {
     await refreshOrbs(); const { id } = JSON.parse(e.data);
     if (S.tab !== 'orbs' && !S.seenPending.has(id)) { $('#orbs-dot').hidden = false; toast('New orb found: open Orbs to approve it', 4000); }
@@ -159,15 +160,31 @@ $('#sticker-grid').addEventListener('click', e => {
   S.sticker = S.sticker === b.dataset.key ? null : b.dataset.key; renderSend();
 });
 $('#photo-btn').addEventListener('click', () => $('#photo-input').click());
-$('#photo-input').addEventListener('change', async e => {
-  const f = e.target.files[0]; if (!f) return;
+const photoBtnHtml = $('#photo-btn').innerHTML;
+async function uploadPhoto(f) {
+  if (!f || !f.type.startsWith('image/')) return;
   $('#photo-btn').disabled = true; $('#photo-btn').textContent = 'Uploading…';
   try {
-    const fd = new FormData(); fd.append('file', f);
+    const fd = new FormData(); fd.append('file', f, f.name || 'pasted.png');
     S.media = await api('POST', '/api/media', fd);
     $('#photo-preview img').src = S.media.url; $('#photo-preview').hidden = false;
   } catch (ex) { toast(`Photo rejected: ${ex.message}`, 4000); }
-  finally { $('#photo-btn').disabled = false; $('#photo-btn').innerHTML = $('#photo-btn').innerHTML.replace('Uploading…', 'Photo'); e.target.value = ''; updateSendButton(); }
+  finally { $('#photo-btn').disabled = false; $('#photo-btn').innerHTML = photoBtnHtml; updateSendButton(); }
+}
+$('#photo-input').addEventListener('change', e => { uploadPhoto(e.target.files[0]); e.target.value = ''; });
+// An image pasted (or dropped) anywhere on the Send tab becomes the photo to send.
+document.addEventListener('paste', e => {
+  if (S.tab !== 'send' || !$('#login').hidden) return;
+  const item = [...(e.clipboardData?.items || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
+  if (!item) return;
+  e.preventDefault(); uploadPhoto(item.getAsFile());
+});
+document.addEventListener('dragover', e => { if (S.tab === 'send') e.preventDefault(); });
+document.addEventListener('drop', e => {
+  if (S.tab !== 'send') return;
+  const f = [...(e.dataTransfer?.files || [])].find(x => x.type.startsWith('image/'));
+  if (!f) return;
+  e.preventDefault(); uploadPhoto(f);
 });
 $('#photo-remove').addEventListener('click', () => { S.media = null; $('#photo-preview').hidden = true; updateSendButton(); });
 $('#send-btn').addEventListener('click', async () => {
@@ -244,6 +261,7 @@ function renderOrbs() {
   }).join('');
   $('#no-orbs').hidden = S.orbs.length > 0;
   $$('.code', $('#pending')).forEach(wireCode);
+  renderFirmware(paired);
 }
 function wireCode(box) {
   const inputs = $$('input', box);
@@ -272,6 +290,36 @@ $('#pending').addEventListener('submit', async e => {
     $$('.code input', f).forEach(i => { i.value = ''; }); $('.code input', f).focus();
   }
 });
+function renderFirmware(paired) {
+  const list = $('#fw-list');
+  if (!(S.firmware || []).length) { list.textContent = 'Nothing uploaded yet. Orbs run what was flashed over USB.'; }
+  else {
+    list.innerHTML = S.firmware.map(f => {
+      const orbs = paired.filter(o => o.model === f.model);
+      const behind = orbs.filter(o => o.fw !== f.version);
+      const st = !orbs.length ? 'no orbs of this model' : behind.length ? `${behind.length} of ${orbs.length} still on another version` : `all ${orbs.length} orb${orbs.length > 1 ? 's' : ''} on it`;
+      return `<div class="fw-row"><div><b>${esc(f.model)}</b> ${esc(f.version)} · ${Math.round(f.size / 1024)} KB · ${st}</div><button type="button" class="link" data-fw-del="${esc(f.model)}">remove</button></div>`;
+    }).join('');
+  }
+  const form = $('#fw-form'), m = form.elements.model;
+  if (!m.value && paired[0]?.model) m.value = paired[0].model;
+}
+$('#fw-list').addEventListener('click', async e => {
+  const b = e.target.closest('[data-fw-del]'); if (!b) return;
+  try { await api('DELETE', `/api/firmware/${b.dataset.fwDel}`); toast('Firmware removed; orbs keep what they run'); } catch (ex) { toast(ex.message); }
+});
+$('#fw-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.currentTarget, err = $('.error', form), btn = $('button[type=submit]', form);
+  err.hidden = true; btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    const fd = new FormData(form);
+    const fw = await api('POST', '/api/firmware', fd);
+    toast(`${fw.model} ${fw.version} rolling out`); form.elements.file.value = ''; form.elements.version.value = '';
+  } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+  finally { btn.disabled = false; btn.textContent = 'Upload and roll out'; }
+});
+
 $('#paired').addEventListener('click', e => { const row = e.target.closest('.orb-row'); if (row) openOrbSheet(S.orbs.find(o => o.id === row.dataset.id)); });
 function openOrbSheet(o) {
   const other = otherUser();

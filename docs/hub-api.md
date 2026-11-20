@@ -47,8 +47,20 @@ Delivery status: `queued` → `delivered` (orb sent `received`) → `read`. Offl
 | POST | `/api/media` | multipart `file` (≤ 15 MB, JPEG/PNG/HEIC/WebP) | 201 `{id, url}`; 413 `too_large`, 422 `bad_image`. HEIC via `pillow-heif`. |
 | GET | `/media/photos/{id}.jpg` | | Public on the LAN (orbs fetch without auth). Unguessable ULID names. |
 | GET | `/media/stickers/{key}.png` | | Same |
+| GET | `/media/emoji/{seq}.png` | | 40×40 RGBA PNG of one emoji grapheme for orb text, rendered on first request (`seq` = hex codepoints joined by `-`). 404 `unknown_emoji`. Public. |
+| GET | `/media/fw/{model}-{version}.bin` | | Firmware images uploaded below. Public. |
 
 Photo pipeline: `ImageOps.exif_transpose` → center-crop square → 466×466 LANCZOS → RGB → JPEG quality 85, `progressive=False`, `optimize=True`, no EXIF.
+
+## Firmware (OTA)
+
+| Method | Path | Body | Result |
+|---|---|---|---|
+| GET | `/api/firmware` | | `[{model, version, url, sha256, size, uploaded_at}]`, one per board model |
+| POST | `/api/firmware` | multipart `file` (ESP32 app image ≤ 3 MB), `version` (semver), `model` (the orb's `hello.model`) | 201 with the entry; republishes `config.fw` to every active orb of that model. 413 `too_large`, 422 `validation` / `bad_firmware` |
+| DELETE | `/api/firmware/{model}` | | 204; drops `fw` from those configs (orbs keep what they run). 404 `unknown_firmware` |
+
+`make fw-release` does the POST from the laptop. SSE event `firmware.changed`.
 
 ## Stickers and phrases
 

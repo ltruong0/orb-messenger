@@ -20,7 +20,19 @@
       "additionalProperties": false
     },
     "tz": {"type": "string", "minLength": 3, "maxLength": 64},
-    "media_base": {"type": "string", "pattern": "^https?://[^/\\s]+$"}
+    "media_base": {"type": "string", "pattern": "^https?://[^/\\s]+$"},
+    "fw": {
+      "type": "object",
+      "required": ["version", "model", "url", "sha256", "size"],
+      "properties": {
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([-+][0-9A-Za-z.-]+)?$"},
+        "model": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{1,31}$"},
+        "url": {"type": "string", "pattern": "^/media/fw/[A-Za-z0-9._-]+\\.bin$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size": {"type": "integer", "minimum": 65536, "maximum": 3145728}
+      },
+      "additionalProperties": false
+    }
   },
   "allOf": [
     {"if": {"properties": {"state": {"const": "pending"}}}, "then": {"required": ["code"]}},

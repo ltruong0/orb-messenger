@@ -7,8 +7,10 @@ payloads that validate against contracts/schemas."""
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
+import re
 import secrets
 import sqlite3
 import time
@@ -23,6 +25,7 @@ from .ids import ORB_ID_RE, STICKER_KEY_RE, ULID_RE, new_ulid
 from .mqtt import Mqtt, MqttUnavailable
 from .photos import process_photo
 from .stickers import (
+    EMOJI_INLINE_SIZE,
     SEED_STICKERS,
     BadSticker,
     render_emoji,
@@ -70,14 +73,16 @@ class Hub:
             on_connect=self.reconcile,
         )
         self.emoji_font: Path | None = settings.find_emoji_font()
+        self.firmware: dict[str, dict[str, Any]] = {}  # model -> build to run (meta 'firmware')
         self._presence: dict[str, bool] = {}  # status seen before hello for unknown orbs
         self._led_timers: dict[str, asyncio.Task] = {}
 
     # ------------------------------------------------------------ lifecycle
     async def start(self) -> None:
-        for sub in ("photos", "stickers"):
+        for sub in ("photos", "stickers", "emoji", "fw"):
             (self.s.media_dir / sub).mkdir(parents=True, exist_ok=True)
         await self.db.open()
+        self.firmware = await self.db.get_meta("firmware", {})
         await self._seed_stickers()
         if await self.db.get_meta("phrases") is None:
             await self.db.set_meta("phrases", DEFAULT_PHRASES)
@@ -435,7 +440,7 @@ class Hub:
     def config_payload(self, orb: dict[str, Any]) -> dict[str, Any]:
         if orb["state"] == "pending":
             return {"state": "pending", "code": orb["code"]}
-        return {
+        payload = {
             "state": "active",
             "name": orb["name"],
             "owner": orb["owner"],
@@ -444,6 +449,10 @@ class Hub:
             "tz": self.s.tz_posix,
             "media_base": self.s.media_base_url,
         }
+        fw = self.firmware.get(orb.get("model") or "")
+        if fw:
+            payload["fw"] = {k: fw[k] for k in ("version", "model", "url", "sha256", "size")}
+        return payload
 
     async def _publish_orb_state(self, orb: dict[str, Any]) -> None:
         """config + led (+ latest inbox for active orbs): the orb's whole retained state."""
@@ -650,6 +659,78 @@ class Hub:
             "INSERT INTO media(id,kind,created_at) VALUES(?,?,?)", (media_id, "photo", now())
         )
         return {"id": media_id, "url": f"/media/photos/{media_id}.jpg"}
+
+    EMOJI_SEQ = re.compile(r"^[0-9a-f]{2,6}(-[0-9a-f]{2,6}){0,8}$")
+
+    async def emoji_png(self, seq: str) -> Path:
+        """Small PNG of one emoji grapheme for inline text on orbs (decisions 46).
+
+        `seq` is the grapheme's codepoints in lowercase hex joined by '-'. Rendered on
+        first request and kept under media/emoji; the orb builds the URL itself.
+        """
+        if not self.EMOJI_SEQ.match(seq):
+            raise HubError(404, "unknown_emoji", "not an emoji codepoint sequence")
+        path = self.s.media_dir / "emoji" / f"{seq}.png"
+        if path.exists():
+            return path
+        if self.emoji_font is None:
+            raise HubError(500, "no_emoji_font", "NotoColorEmoji.ttf not found on the hub")
+        text = "".join(chr(int(h, 16)) for h in seq.split("-"))
+        try:
+            png = await asyncio.to_thread(
+                render_emoji, text, self.emoji_font, EMOJI_INLINE_SIZE, False
+            )
+        except (BadSticker, OSError, ValueError) as e:
+            raise HubError(404, "unknown_emoji", str(e)) from e
+        path.write_bytes(png)
+        return path
+
+    # ------------------------------------------------------------ firmware (OTA, decisions 47)
+    FW_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$")
+    FW_MODEL = re.compile(r"^[a-z0-9][a-z0-9.-]{1,31}$")
+
+    async def list_firmware(self) -> list[dict[str, Any]]:
+        return [{"model": m, **v} for m, v in sorted(self.firmware.items())]
+
+    async def add_firmware(self, data: bytes, version: str, model: str) -> dict[str, Any]:
+        """Store a build for one board model and tell every active orb of that model."""
+        if not self.FW_VERSION.match(version):
+            raise HubError(422, "validation", "version must look like 1.2.3")
+        if not self.FW_MODEL.match(model):
+            raise HubError(422, "validation", "model must be the orb's hello.model")
+        if len(data) < 64 * 1024 or data[0] != 0xE9:
+            raise HubError(422, "bad_firmware", "not an ESP32 application image")
+        name = f"{model}-{version}.bin"
+        (self.s.media_dir / "fw" / name).write_bytes(data)
+        entry = {
+            "version": version,
+            "model": model,
+            "url": f"/media/fw/{name}",
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size": len(data),
+            "uploaded_at": now(),
+        }
+        self.firmware[model] = entry
+        await self.db.set_meta("firmware", self.firmware)
+        await self._republish_configs(model)
+        self.bus.publish("firmware.changed", model=model)
+        return {"model": model, **entry}
+
+    async def delete_firmware(self, model: str) -> None:
+        if model not in self.firmware:
+            raise HubError(404, "unknown_firmware", "no firmware for that model")
+        del self.firmware[model]
+        await self.db.set_meta("firmware", self.firmware)
+        await self._republish_configs(model)
+        self.bus.publish("firmware.changed", model=model)
+
+    async def _republish_configs(self, model: str) -> None:
+        for orb in await self.db.fetchall(
+            "SELECT * FROM orbs WHERE state='active' AND model=?", (model,)
+        ):
+            await self._publish(
+                f"orb/{orb['id']}/config", "config", self.config_payload(_row(orb)), True
+            )
 
     # ------------------------------------------------------------ stickers
     async def list_stickers(self) -> list[dict[str, Any]]:

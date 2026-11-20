@@ -1,6 +1,6 @@
 # Orb Messenger. Targets listed in CLAUDE.md; add them as each phase lands.
 # Python tooling runs through uv (pins Python 3.12 + locked deps).
-.PHONY: contract-test broker-test broker-check sim-test hub-test test lint fmt mosquitto-passwd hub-secrets sim sim-ui hub-run image image-push set-image fonts deploy deploy-diff deploy-status fw-secrets fw-build fw-flash fw-monitor
+.PHONY: fw-release contract-test broker-test broker-check sim-test hub-test test lint fmt mosquitto-passwd hub-secrets sim sim-ui hub-run image image-push set-image fonts deploy deploy-diff deploy-status fw-secrets fw-build fw-flash fw-monitor
 
 UV ?= uv
 IMAGE ?= ghcr.io/ltruong0/orb-messenger/msg-hub
@@ -117,6 +117,19 @@ fw-build:                 ## compile the orb firmware (pioarduino, Arduino core 
 
 fw-flash:                 ## build + flash over USB (FW_PORT=/dev/cu.usbmodemXXX to pick a port)
 	$(PIO) run -d firmware -e orb -t upload $(if $(FW_PORT),--upload-port $(FW_PORT),)
+
+HUB_URL ?= https://orb.marcellolab.com
+fw-release: fw-build       ## upload the build to the hub for OTA (version from platformio.ini, model from ORB_BOARD)
+	@test -f .env || { echo ".env missing"; exit 1; }
+	@set -a; . ./.env; set +a; \
+	  ver=$$(sed -n 's/.*-DORB_FW_VERSION=\\"\([^"\\]*\)\\".*/\1/p' firmware/platformio.ini | head -1); \
+	  board=$$(sed -n 's/.*-DORB_BOARD=\([0-9]*\).*/\1/p' firmware/platformio.ini | head -1); \
+	  case $$board in 175) model=ws-s3-amoled-1.75;; *) model=ws-s3-amoled-1.43;; esac; \
+	  echo "releasing $$model $$ver to $(HUB_URL)"; \
+	  jar=$$(mktemp); trap 'rm -f $$jar' EXIT; \
+	  printf '{"user":"lee","pin":"%s"}' "$$HUB_PIN" | curl -sk -c $$jar -o /dev/null -w "login %{http_code}\n" \
+	    -H 'content-type: application/json' --data @- $(HUB_URL)/api/session; \
+	  curl -sk -b $$jar -F file=@firmware/.pio/build/orb/firmware.bin -F version=$$ver -F model=$$model $(HUB_URL)/api/firmware; echo
 
 fw-monitor:               ## serial log at 115200 with the exception decoder
 	$(PIO) device monitor -d firmware -e orb $(if $(FW_PORT),--port $(FW_PORT),)

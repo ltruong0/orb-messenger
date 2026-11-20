@@ -69,6 +69,17 @@
     <h2 class="label">Paired</h2>
     <div id="paired"></div>
     <p id="no-orbs" class="muted" hidden>No orbs yet. Power one up on the Wi-Fi and it shows up here with a code.</p>
+    <h2 class="label">Firmware</h2>
+    <div class="card">
+      <div id="fw-list" class="muted">Nothing uploaded yet. Orbs run what was flashed over USB.</div>
+      <form id="fw-form">
+        <label class="field"><span>Model</span><input name="model" required placeholder="ws-s3-amoled-1.43" pattern="[a-z0-9][a-z0-9.\-]{1,31}"></label>
+        <label class="field"><span>Version</span><input name="version" required placeholder="0.2.0" pattern="[0-9]+\.[0-9]+\.[0-9]+.*"></label>
+        <label class="field"><span>firmware.bin</span><input name="file" type="file" accept=".bin" required></label>
+        <p class="error" hidden></p>
+        <div class="actions"><button class="primary" type="submit">Upload and roll out</button></div>
+      </form>
+    </div>
   </section>
 
   <!-- ============ STICKERS ============ -->

@@ -1,0 +1,19 @@
+{
+  "state": "active",
+  "name": "Ashleigh's office",
+  "owner": "ashleigh",
+  "brightness": 70,
+  "quiet": {
+    "start": "22:00",
+    "end": "07:00"
+  },
+  "tz": "CST6CDT,M3.2.0,M11.1.0",
+  "media_base": "http://orb.marcellolab.com",
+  "fw": {
+    "version": "0.2.0",
+    "model": "ws-s3-amoled-1.43",
+    "url": "/media/fw/ws-s3-amoled-1.43-0.2.0.bin",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "size": 2070000
+  }
+}

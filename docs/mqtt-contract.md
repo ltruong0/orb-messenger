@@ -45,6 +45,7 @@ This is normative. `contracts/schemas/` mirrors it and `contracts/examples/` mus
 - `pending` requires `code`; `active` requires `name`, `media_base`.
 - `owner` is the user id whose home orb this is, or `null` for a shared orb.
 - `tz` is a POSIX TZ string for `setenv("TZ")` + SNTP. Quiet hours are evaluated on the orb.
+- `fw` (optional, active only): `{version, model, url, sha256, size}`, the build every orb of `model` should run. An orb whose `hello.fw` differs fetches `media_base + url` into its spare app slot, verifies `sha256` and reboots (decisions 47). See `contracts/examples/config.active-fw.json`.
 
 ### inbox (hub → orb, retained)
 ```json
@@ -52,7 +53,7 @@ This is normative. `contracts/schemas/` mirrors it and `contracts/examples/` mus
  "text":"thinking of you","sticker":"heart-eyes","media":"/media/stickers/heart-eyes.png","ts":1761834120}
 ```
 - `type`: `text` | `sticker` | `photo`
-- `text`: optional caption, ≤ 80 chars (required for `text`)
+- `text`: optional caption, ≤ 80 chars (required for `text`). May contain emoji; orbs draw each grapheme from `media_base + /media/emoji/{seq}.png` where `seq` is its codepoints in lowercase hex joined by `-` with U+FE0F dropped (decisions 46).
 - `sticker` + `media`: required for `sticker`
 - `media`: path relative to `config.media_base`, required for `photo` (466×466 baseline JPEG)
 

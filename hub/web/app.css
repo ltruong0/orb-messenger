@@ -115,3 +115,6 @@ input[type=file]{font-size:14px;color:var(--muted)}
 .sheet h3{font:600 26px var(--head);margin:0 0 12px}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:999px;font-size:16px;z-index:20;max-width:90%;text-align:center}
 .shake{animation:shake .4s} @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.fw-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;color:var(--ink)}
+.fw-row button.link{background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;padding:0;cursor:pointer}

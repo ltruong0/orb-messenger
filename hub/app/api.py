@@ -14,6 +14,8 @@ from .config import User
 from .hub import Hub, HubError
 from .photos import MAX_UPLOAD
 
+MAX_FIRMWARE = 3 * 1024 * 1024  # app partition size (firmware/partitions.csv)
+
 
 class LoginBody(BaseModel):
     user: str
@@ -121,6 +123,27 @@ def build_router(hub: Hub, sessions: Sessions) -> APIRouter:
             return await hub.store_photo(data)
         except ValueError as e:  # BadImage
             raise HubError(422, "bad_image", str(e)) from e
+
+    # ---- firmware (OTA)
+    @api.get("/firmware")
+    async def firmware(_: Me) -> list[dict[str, Any]]:
+        return await hub.list_firmware()
+
+    @api.post("/firmware", status_code=201)
+    async def add_firmware(
+        _: Me,
+        file: Annotated[UploadFile, File()],
+        version: Annotated[str, Form()],
+        model: Annotated[str, Form()],
+    ) -> dict[str, Any]:
+        data = await file.read(MAX_FIRMWARE + 1)
+        if len(data) > MAX_FIRMWARE:
+            raise HubError(413, "too_large", "firmware must fit a 3 MB app partition")
+        return await hub.add_firmware(data, version.strip(), model.strip())
+
+    @api.delete("/firmware/{model}", status_code=204, response_class=Response)
+    async def delete_firmware(model: str, _: Me) -> None:
+        await hub.delete_firmware(model)
 
     # ---- stickers & phrases
     @api.get("/stickers")
