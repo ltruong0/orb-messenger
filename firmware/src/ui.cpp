@@ -227,8 +227,8 @@ static void tween(lv_obj_t* o, lv_anim_exec_xcb_t cb, int32_t from, int32_t to, 
   lv_anim_start(&a);
 }
 
-enum Mood { Blink, DoubleBlink, Wink, Look, Happy, Sleepy, Surprise, Curious, Bounce, MOOD_COUNT };
-static const uint8_t MOOD_WEIGHT[MOOD_COUNT] = {10, 2, 2, 4, 2, 2, 2, 2, 1};
+enum Mood { Blink, DoubleBlink, Wink, Look, Happy, Sleepy, Surprise, Curious, Bounce, Asleep, MOOD_COUNT };
+static const uint8_t MOOD_WEIGHT[MOOD_COUNT] = {10, 2, 2, 4, 2, 2, 2, 2, 1, 2};
 
 // Plays one mood; returns roughly how long it takes.
 static uint32_t play_mood(Mood m) {
@@ -279,6 +279,30 @@ static uint32_t play_mood(Mood m) {
     case Bounce:
       tween(eyes, ex_y, drift_y, drift_y - 16, 110, 0, 130, 2);
       return 600;
+    case Asleep: {
+      // eyes close to thin lines and a "z z Z" floats up and fades
+      for (auto e : both) tween(e, ex_h, EYE_H, 10, 600, 3400, 400);
+      lv_obj_t* z = label(content, "z z Z", &lv_font_montserrat_24, GREY, drift_y - 70, 120);
+      lv_obj_align(z, LV_ALIGN_CENTER, drift_x + 75, drift_y - 70);
+      lv_obj_set_style_text_letter_space(z, 4, 0);
+      lv_anim_t a;
+      lv_anim_init(&a);
+      lv_anim_set_var(&a, z);
+      lv_anim_set_exec_cb(&a, ex_y);
+      lv_anim_set_values(&a, drift_y - 70, drift_y - 130);
+      lv_anim_set_delay(&a, 500);
+      lv_anim_set_duration(&a, 3200);
+      lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+      lv_anim_start(&a);
+      lv_anim_set_exec_cb(&a, [](void* o, int32_t v) { lv_obj_set_style_opa((lv_obj_t*)o, v, 0); });
+      lv_anim_set_values(&a, 255, 0);
+      lv_anim_set_delay(&a, 1500);
+      lv_anim_set_duration(&a, 2200);
+      lv_anim_set_path_cb(&a, lv_anim_path_linear);
+      lv_anim_set_completed_cb(&a, [](lv_anim_t* an) { lv_obj_delete((lv_obj_t*)an->var); });
+      lv_anim_start(&a);
+      return 4500;
+    }
     default:
       return 0;
   }
@@ -305,7 +329,7 @@ static void show_idle() {
   set_state(St::Idle);
   eyes = lv_obj_create(content);
   lv_obj_remove_style_all(eyes);
-  lv_obj_set_size(eyes, 220, 140);
+  lv_obj_set_size(eyes, 320, 160);  // room for look (+-24 px) and surprise without clipping
   lv_obj_remove_flag(eyes, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
   lv_obj_add_flag(eyes, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   lv_obj_align(eyes, LV_ALIGN_CENTER, drift_x, drift_y);

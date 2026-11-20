@@ -43,7 +43,7 @@
 | PORTAL | no Wi-Fi config / reset | setup instructions | portal saved |
 | UNREACHABLE | Wi-Fi or MQTT down > 10 s | spinner, LED amber | connected |
 | PAIRING | `config.state == pending` | 4-digit code, LED blue | `config.state == active` |
-| IDLE | active, nothing unread | eyes; a random mood every 2–7 s (blink, wink, look, happy, sleepy, surprise, curious, bounce); drift a few px (burn-in) | new unread inbox; tap → SHOW (recent) or NOTHING; 3 h → SLEEP |
+| IDLE | active, nothing unread | eyes; a random mood every 2–7 s (blink, wink, look, happy, sleepy, surprise, curious, bounce, asleep with z's); drift a few px (burn-in) | new unread inbox; tap → SHOW (recent) or NOTHING; 3 h → SLEEP |
 | UNREAD | new message | "New from {from_name}" + heart, LED red | tap → SHOW |
 | SHOW | tap in UNREAD, or tap in IDLE within 10 min of reading | text / sticker / photo, emoji inline | 60 s timeout or tap → IDLE |
 | RECEIPT | `notice` received | happy eyes + "{by} read it", LED green | 30 s or tap → previous |
