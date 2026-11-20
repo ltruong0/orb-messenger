@@ -1,6 +1,6 @@
 // Orb Messenger service worker: app shell offline, API always from the network,
 // sticker PNGs cached (they are content-addressed by the manifest anyway).
-const VERSION = 'orb-shell-v4';
+const VERSION = 'orb-shell-v5';
 const SHELL = [
   '/', '/app.css', '/app.js', '/manifest.webmanifest',
   '/fonts/fredoka-latin-wght-normal.woff2', '/fonts/dm-sans-latin-wght-normal.woff2',

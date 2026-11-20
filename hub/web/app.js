@@ -99,7 +99,7 @@ $('#login-form').addEventListener('submit', async e => {
 // ---------------------------------------------------------------- boot + live updates
 async function boot() {
   $('#login').hidden = true; $('#app').hidden = false;
-  [S.users, S.orbs, S.stickers, S.phrases, S.firmware] = await Promise.all([api('GET', '/api/users'), api('GET', '/api/orbs'), api('GET', '/api/stickers'), api('GET', '/api/phrases'), api('GET', '/api/firmware')]);
+  [S.users, S.orbs, S.stickers, S.phrases, S.firmware, S.moods] = await Promise.all([api('GET', '/api/users'), api('GET', '/api/orbs'), api('GET', '/api/stickers'), api('GET', '/api/phrases'), api('GET', '/api/firmware'), api('GET', '/api/moods')]);
   S.orbs.filter(o => o.state === 'pending').forEach(o => S.seenPending.add(o.id));
   await loadHistory(true);
   renderAll(); showTab(S.tab); connectEvents();
@@ -138,13 +138,15 @@ function renderSend() {
     `<button type="button" class="chip ${S.to.has(o.id) ? 'on' : ''} ${o.online ? '' : 'offline'}" data-id="${esc(o.id)}">${esc(o.name)}${o.online ? '' : ' · offline'}</button>`).join('')
     : '<span class="muted">No approved orbs yet. Pair one under Orbs.</span>';
   $('#phrases').innerHTML = S.phrases.map(p => `<button type="button" class="chip" data-phrase="${esc(p)}">${esc(p)}</button>`).join('');
+  $('#mood-chips').innerHTML = (S.moods || []).map(m =>
+    `<button type="button" class="chip ${S.mood === m.key ? 'on' : ''}" data-mood="${esc(m.key)}">${m.emoji} ${esc(m.label)}</button>`).join('');
   $('#sticker-grid').innerHTML = S.stickers.map(s =>
     `<button type="button" class="stk ${S.sticker === s.key ? 'on' : ''}" data-key="${esc(s.key)}" title="${esc(s.name)}"><img src="${esc(s.url)}" alt="${esc(s.name)}"></button>`).join('')
     + '<button type="button" class="stk add" data-add>+</button>';
   updateSendButton();
 }
 function updateSendButton() {
-  const n = S.to.size, has = $('#text').value.trim() || S.sticker || S.media;
+  const n = S.to.size, has = $('#text').value.trim() || S.sticker || S.mood || S.media;
   const b = $('#send-btn'); b.textContent = n ? `Send to ${n} orb${n === 1 ? '' : 's'}` : 'Pick an orb'; b.disabled = !n || !has;
   $('#count').textContent = `${$('#text').value.length}/80`;
 }
@@ -157,7 +159,11 @@ $('#text').addEventListener('input', updateSendButton);
 $('#sticker-grid').addEventListener('click', e => {
   const b = e.target.closest('.stk'); if (!b) return;
   if (b.dataset.add !== undefined) { showTab('stickers'); return; }
-  S.sticker = S.sticker === b.dataset.key ? null : b.dataset.key; renderSend();
+  S.sticker = S.sticker === b.dataset.key ? null : b.dataset.key; if (S.sticker) S.mood = null; renderSend();
+});
+$('#mood-chips').addEventListener('click', e => {
+  const b = e.target.closest('[data-mood]'); if (!b) return;
+  S.mood = S.mood === b.dataset.mood ? null : b.dataset.mood; if (S.mood) S.sticker = null; renderSend();
 });
 $('#photo-btn').addEventListener('click', () => $('#photo-input').click());
 const photoBtnHtml = $('#photo-btn').innerHTML;
@@ -188,12 +194,12 @@ document.addEventListener('drop', e => {
 });
 $('#photo-remove').addEventListener('click', () => { S.media = null; $('#photo-preview').hidden = true; updateSendButton(); });
 $('#send-btn').addEventListener('click', async () => {
-  const body = { to: [...S.to], text: $('#text').value.trim() || undefined, sticker: S.sticker || undefined, media_id: S.media?.id };
+  const body = { to: [...S.to], text: $('#text').value.trim() || undefined, sticker: S.sticker || undefined, mood: S.mood || undefined, media_id: S.media?.id };
   $('#send-btn').disabled = true;
   try {
     const r = await api('POST', '/api/messages', body);
     toast(`Sent to ${r.deliveries.length} orb${r.deliveries.length === 1 ? '' : 's'}`);
-    $('#text').value = ''; S.sticker = null; S.media = null; $('#photo-preview').hidden = true;
+    $('#text').value = ''; S.sticker = null; S.mood = null; S.media = null; $('#photo-preview').hidden = true;
     renderSend(); await loadHistory(true); renderHistory();
   } catch (ex) { toast(`Not sent: ${ex.message}`, 4000); updateSendButton(); }
 });
@@ -215,6 +221,7 @@ function renderHistory() {
     const unread = !isMine && toMe.length > 0 && toMe.every(x => x.status !== 'read');
     let bubble;
     if (m.type === 'photo') bubble = `<div class="bubble photo"><img src="${esc(m.media_url)}" alt="photo" loading="lazy"></div>${m.text ? `<div class="bubble" style="margin-top:8px">${esc(m.text)}</div>` : ''}`;
+    else if (m.type === 'mood') { const md = (S.moods || []).find(x => x.key === m.mood); bubble = `<div class="bubble">${md ? md.emoji + ' ' : ''}feels ${esc(md ? md.label.toLowerCase() : m.mood)}${m.text ? `<br>${esc(m.text)}` : ''}</div>`; }
     else if (m.type === 'sticker') bubble = `<div class="bubble ${m.text ? '' : 'sticker-only'}">${m.text ? esc(m.text) : ''}<img class="stk-img" src="${esc(m.media_url)}" alt="${esc(m.sticker)}"></div>`;
     else bubble = `<div class="bubble">${esc(m.text)}</div>`;
     let meta, cls = '';

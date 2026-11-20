@@ -34,6 +34,8 @@ static lv_obj_t* eyes = nullptr;
 static lv_obj_t* upd_arc = nullptr;
 static lv_obj_t* upd_pct = nullptr;
 static lv_obj_t* upd_status = nullptr;
+static lv_obj_t* face = nullptr;         // current mood face group
+static lv_timer_t* moment_timer = nullptr;  // idle: next full-face mood moment
 
 // Current state the hub gave us
 static bool has_config = false, connected = false;
@@ -53,7 +55,7 @@ static uint32_t read_at = 0;        // when the current message was opened (0 = 
 static int drift_x = 0, drift_y = -70;  // idle eyes offset, nudged now and then against burn-in
 
 // Montserrat copies whose fallback is an image font of the hub-rendered emoji PNGs.
-static lv_font_t F44, F36, F30, F20;
+static lv_font_t F44, F36, F30, F24, F20;
 static lv_font_t* emoji_font = nullptr;
 
 static const lv_color_t WHITE = lv_color_hex(0xF4F4F8);
@@ -61,6 +63,11 @@ static const lv_color_t GREY = lv_color_hex(0x9A9AA8);
 static const lv_color_t DIM = lv_color_hex(0x6E6E7A);
 static const lv_color_t RED = lv_color_hex(0xFF5A5A);
 static const lv_color_t AMBER = lv_color_hex(0xF5AA28);
+static const lv_color_t DROP_BLUE = lv_color_hex(0x6FB7FF);
+// Mood keys, same list as contracts/schemas/inbox.schema.json and hub/app/moods.py.
+static const char* MOOD_KEYS[] = {"happy", "sad",    "confused", "cold",     "hot",  "scared", "surprised",
+                                  "angry", "sleepy", "love",     "laughing", "cool", "sick",   "excited"};
+static const int MOOD_KEY_COUNT = sizeof(MOOD_KEYS) / sizeof(MOOD_KEYS[0]);
 
 // ---------------------------------------------------------------- helpers
 static void clear() {
@@ -68,8 +75,12 @@ static void clear() {
     lv_timer_delete(anim_timer);
     anim_timer = nullptr;
   }
+  if (moment_timer) {
+    lv_timer_delete(moment_timer);
+    moment_timer = nullptr;
+  }
   lv_anim_delete(nullptr, nullptr);
-  eye_l = eye_r = eyes = upd_arc = upd_pct = upd_status = nullptr;
+  eye_l = eye_r = eyes = face = upd_arc = upd_pct = upd_status = nullptr;
   lv_obj_clean(content);
 }
 
@@ -139,6 +150,8 @@ static String when_text(long ts) {
 }
 
 static void activity() { last_activity = millis(); }
+static void draw_mood(lv_obj_t* parent, const char* key, int cy);
+static void show_idle();
 
 static void set_state(St s) {
   if (s != state) log_i("state %s -> %s", ST_NAMES[(int)state], ST_NAMES[(int)s]);
@@ -324,6 +337,17 @@ static void mood_timer_cb(lv_timer_t* t) {
   lv_timer_set_period(t, dur + random(1800, 5200));
 }
 
+// A full mood face for a few seconds, then back to the plain eyes.
+static void show_idle_moment(const char* key) {
+  clear();
+  set_state(St::Idle);
+  draw_mood(content, key, -25);
+  if (!cfg_name.isEmpty()) label(content, cfg_name.c_str(), &lv_font_montserrat_20, GREY, 150);
+  anim_timer = lv_timer_create([](lv_timer_t*) { show_idle(); }, 5000, nullptr);
+}
+
+static void moment_timer_cb(lv_timer_t*) { show_idle_moment(MOOD_KEYS[random(0, MOOD_KEY_COUNT)]); }
+
 static void show_idle() {
   clear();
   set_state(St::Idle);
@@ -341,6 +365,7 @@ static void show_idle() {
   lv_obj_set_x(eye_r, EYE_DX);
   if (!cfg_name.isEmpty()) label(content, cfg_name.c_str(), &lv_font_montserrat_20, GREY, 70);
   anim_timer = lv_timer_create(mood_timer_cb, random(2000, 5000), nullptr);
+  moment_timer = lv_timer_create(moment_timer_cb, random(30000, 90000), nullptr);
 }
 
 // Tap in idle with nothing recent: calm eyes and a note, back to idle after a moment.
@@ -361,26 +386,245 @@ static void show_nothing_new() {
   }
 }
 
-static void heart(lv_obj_t* parent, int y) {
-  // Two circles and a rotated square, like the mockup's flat heart.
+// Flat heart of diamond side S at (x, y): two circles on the midpoints of the
+// diamond's upper edges (+-S/4, S/8 - S/4) hide its side corners. Returns the group.
+static lv_obj_t* heart_at(lv_obj_t* parent, int x, int y, int S, lv_color_t color) {
   lv_obj_t* h = lv_obj_create(parent);
   lv_obj_remove_style_all(h);
-  lv_obj_set_size(h, 110, 100);
+  lv_obj_set_size(h, S * 2, S * 2);
   lv_obj_remove_flag(h, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
   lv_obj_add_flag(h, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-  lv_obj_align(h, LV_ALIGN_CENTER, 0, y);
-  // Diamond of side S centred at (0, 8); the circles sit on the midpoints of its
-  // two upper edges (+-S/4, 8 - S/4) with diameter S so they hide its side corners.
-  const int S = 60;
-  lv_obj_t* sq = box(h, S, S, RED, 4);
-  lv_obj_align(sq, LV_ALIGN_CENTER, 0, 8);
+  lv_obj_align(h, LV_ALIGN_CENTER, x, y);
+  lv_obj_t* sq = box(h, S, S, color, 4);
+  lv_obj_align(sq, LV_ALIGN_CENTER, 0, S / 8);
   lv_obj_set_style_transform_pivot_x(sq, S / 2, 0);
   lv_obj_set_style_transform_pivot_y(sq, S / 2, 0);
   lv_obj_set_style_transform_rotation(sq, 450, 0);
-  lv_obj_t* c1 = box(h, S + 2, S + 2, RED, LV_RADIUS_CIRCLE);
-  lv_obj_align(c1, LV_ALIGN_CENTER, -S / 4, 8 - S / 4);
-  lv_obj_t* c2 = box(h, S + 2, S + 2, RED, LV_RADIUS_CIRCLE);
-  lv_obj_align(c2, LV_ALIGN_CENTER, S / 4, 8 - S / 4);
+  lv_obj_t* c1 = box(h, S + 2, S + 2, color, LV_RADIUS_CIRCLE);
+  lv_obj_align(c1, LV_ALIGN_CENTER, -S / 4, S / 8 - S / 4);
+  lv_obj_t* c2 = box(h, S + 2, S + 2, color, LV_RADIUS_CIRCLE);
+  lv_obj_align(c2, LV_ALIGN_CENTER, S / 4, S / 8 - S / 4);
+  lv_obj_set_style_transform_pivot_x(h, S, 0);
+  lv_obj_set_style_transform_pivot_y(h, S, 0);
+  return h;
+}
+
+static void heart(lv_obj_t* parent, int y) { heart_at(parent, 0, y, 60, RED); }
+
+// ---------------------------------------------------------------- mood faces (decisions 48)
+// Named faces for mood messages and for idle "moments". Keys match the contract enum.
+
+static void ex_rot(void* o, int32_t v) { lv_obj_set_style_transform_rotation((lv_obj_t*)o, v, 0); }
+static void ex_scale(void* o, int32_t v) { lv_obj_set_style_transform_scale((lv_obj_t*)o, v, 0); }
+static void ex_opa(void* o, int32_t v) { lv_obj_set_style_opa((lv_obj_t*)o, v, 0); }
+
+static lv_obj_t* part(lv_obj_t* p, int x, int y, int w, int h, lv_color_t c, int radius, int rot_deg = 0) {
+  lv_obj_t* o = box(p, w, h, c, radius);
+  lv_obj_align(o, LV_ALIGN_CENTER, x, y);
+  lv_obj_set_style_transform_pivot_x(o, w / 2, 0);
+  lv_obj_set_style_transform_pivot_y(o, h / 2, 0);
+  if (rot_deg) lv_obj_set_style_transform_rotation(o, rot_deg * 10, 0);
+  return o;
+}
+
+// Outline only (mouth "o", sunglasses).
+static lv_obj_t* ring(lv_obj_t* p, int x, int y, int w, int h, int border, int radius, lv_color_t c) {
+  lv_obj_t* o = part(p, x, y, w, h, c, radius);
+  lv_obj_set_style_bg_color(o, lv_color_black(), 0);
+  lv_obj_set_style_border_color(o, c, 0);
+  lv_obj_set_style_border_width(o, border, 0);
+  lv_obj_set_style_border_opa(o, LV_OPA_COVER, 0);
+  return o;
+}
+
+// Arc segment: LVGL angles start at 3 o'clock and go clockwise (20..160 = lower half).
+static lv_obj_t* arc_part(lv_obj_t* p, int x, int y, int size, int a0, int a1, int width, lv_color_t c) {
+  lv_obj_t* a = lv_arc_create(p);
+  lv_obj_remove_style(a, nullptr, LV_PART_KNOB);
+  lv_obj_remove_style(a, nullptr, LV_PART_INDICATOR);
+  lv_obj_set_size(a, size, size);
+  lv_arc_set_bg_angles(a, a0, a1);
+  lv_obj_set_style_arc_width(a, width, LV_PART_MAIN);
+  lv_obj_set_style_arc_rounded(a, true, LV_PART_MAIN);
+  lv_obj_set_style_arc_color(a, c, LV_PART_MAIN);
+  lv_obj_remove_flag(a, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_align(a, LV_ALIGN_CENTER, x, y);
+  return a;
+}
+
+// Ping-pong between a and b forever.
+static void loop_anim(lv_obj_t* o, lv_anim_exec_xcb_t cb, int32_t a, int32_t b, uint32_t dur) {
+  lv_anim_t an;
+  lv_anim_init(&an);
+  lv_anim_set_var(&an, o);
+  lv_anim_set_exec_cb(&an, cb);
+  lv_anim_set_values(&an, a, b);
+  lv_anim_set_duration(&an, dur);
+  lv_anim_set_playback_duration(&an, dur);
+  lv_anim_set_repeat_count(&an, LV_ANIM_REPEAT_INFINITE);
+  lv_anim_start(&an);
+}
+
+// a -> b, then jump back and repeat (falling drops, floating z's).
+static void repeat_anim(lv_obj_t* o, lv_anim_exec_xcb_t cb, int32_t a, int32_t b, uint32_t dur, uint32_t gap) {
+  lv_anim_t an;
+  lv_anim_init(&an);
+  lv_anim_set_var(&an, o);
+  lv_anim_set_exec_cb(&an, cb);
+  lv_anim_set_values(&an, a, b);
+  lv_anim_set_duration(&an, dur);
+  lv_anim_set_repeat_count(&an, LV_ANIM_REPEAT_INFINITE);
+  lv_anim_set_repeat_delay(&an, gap);
+  lv_anim_start(&an);
+}
+
+static void drop(lv_obj_t* p, int x, int y) {
+  lv_obj_t* d = part(p, x, y, 14, 20, DROP_BLUE, LV_RADIUS_CIRCLE);
+  repeat_anim(d, ex_y, y, y + 46, 1100, 400);
+  repeat_anim(d, ex_opa, 255, 40, 1100, 400);
+}
+
+static void wavy_mouth(lv_obj_t* p, int y, lv_color_t c) {
+  for (int i = 0; i < 5; i++) part(p, -36 + i * 18, y + (i % 2 ? -6 : 6), 12, 12, c, LV_RADIUS_CIRCLE);
+}
+
+static void star(lv_obj_t* p, int x, int y, lv_color_t c) {
+  for (int r = 0; r < 180; r += 45) {
+    lv_obj_t* bar = part(p, x, y, 62, 14, c, 7, r);
+    loop_anim(bar, ex_rot, r * 10, r * 10 + 450, 1600);
+  }
+}
+
+static void face_pivot(int cy) {
+  lv_obj_set_style_transform_pivot_x(face, 170, 0);
+  lv_obj_set_style_transform_pivot_y(face, 140, 0);
+  (void)cy;
+}
+
+// Builds the face for `key` centred at (0, cy) in parent. Unknown keys get plain eyes.
+static void draw_mood(lv_obj_t* parent, const char* key, int cy) {
+  face = lv_obj_create(parent);
+  lv_obj_remove_style_all(face);
+  lv_obj_set_size(face, 340, 280);
+  lv_obj_remove_flag(face, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
+  lv_obj_add_flag(face, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+  lv_obj_align(face, LV_ALIGN_CENTER, 0, cy);
+  face_pivot(cy);
+  lv_obj_t* f = face;
+  String k = key;
+  const int EY = -40, MY = 70;  // eye and mouth rows
+
+  if (k == "happy") {
+    part(f, -EYE_DX, EY - 10, EYE_W, 18, WHITE, 9);
+    part(f, EYE_DX, EY - 10, EYE_W, 18, WHITE, 9);
+    arc_part(f, 0, MY - 30, 96, 20, 160, 10, WHITE);
+    loop_anim(f, ex_y, cy, cy - 6, 600);
+  } else if (k == "sad") {
+    lv_color_t c = lv_color_hex(0x9FB4FF);
+    part(f, -EYE_DX, EY, EYE_W, 80, c, 28, -14);
+    part(f, EYE_DX, EY, EYE_W, 80, c, 28, 14);
+    arc_part(f, 0, MY + 40, 96, 200, 340, 10, c);
+    drop(f, -EYE_DX - 26, EY + 30);
+  } else if (k == "confused") {
+    part(f, -EYE_DX, EY, EYE_W, 116, WHITE, 28);
+    part(f, EYE_DX, EY + 14, EYE_W, 70, WHITE, 28);
+    part(f, EYE_DX, EY - 70, 56, 12, WHITE, 6, -18);
+    part(f, 0, MY, 50, 10, WHITE, 5, -12);
+    lv_obj_t* q = label(f, "?", &lv_font_montserrat_44, WHITE, 0, 60);
+    lv_obj_align(q, LV_ALIGN_CENTER, 125, EY - 80);
+    lv_obj_set_style_transform_pivot_x(q, 30, 0);
+    lv_obj_set_style_transform_pivot_y(q, 30, 0);
+    loop_anim(q, ex_rot, -120, 120, 700);
+  } else if (k == "cold") {
+    lv_color_t c = lv_color_hex(0x8FD3FF);
+    part(f, -EYE_DX, EY, EYE_W, EYE_H, c, 28);
+    part(f, EYE_DX, EY, EYE_W, EYE_H, c, 28);
+    wavy_mouth(f, MY, c);
+    for (int i = 0; i < 2; i++) {
+      lv_obj_t* fl = label(f, "*", &lv_font_montserrat_48, c, 0, 40);
+      lv_obj_align(fl, LV_ALIGN_CENTER, i ? 135 : -135, i ? 30 : -120);
+      lv_obj_set_style_transform_pivot_x(fl, 20, 0);
+      lv_obj_set_style_transform_pivot_y(fl, 30, 0);
+      loop_anim(fl, ex_rot, 0, 900, 2500);
+    }
+    loop_anim(f, ex_x, -3, 3, 50);
+  } else if (k == "hot") {
+    lv_color_t c = lv_color_hex(0xFF8A5A);
+    part(f, -EYE_DX, EY + 10, EYE_W, 50, c, 25);
+    part(f, EYE_DX, EY + 10, EYE_W, 50, c, 25);
+    ring(f, 0, MY, 36, 44, 9, LV_RADIUS_CIRCLE, c);
+    drop(f, -EYE_DX - 48, EY - 30);
+    drop(f, EYE_DX + 46, EY - 5);
+    for (int i = -1; i <= 1; i++) {
+      lv_obj_t* w = part(f, i * 40, EY - 100, 10, 34, c, 5);
+      loop_anim(w, ex_y, EY - 100, EY - 116, 500 + 120 * (i + 1));
+    }
+  } else if (k == "scared") {
+    part(f, -EYE_DX, EY, 44, 120, WHITE, 22);
+    part(f, EYE_DX, EY, 44, 120, WHITE, 22);
+    part(f, -EYE_DX, EY - 90, 56, 12, WHITE, 6, -12);
+    part(f, EYE_DX, EY - 90, 56, 12, WHITE, 6, 12);
+    ring(f, 0, MY + 5, 40, 52, 9, LV_RADIUS_CIRCLE, WHITE);
+    loop_anim(f, ex_x, -4, 4, 45);
+  } else if (k == "surprised") {
+    lv_obj_t* l = part(f, -EYE_DX, EY, 80, 80, WHITE, LV_RADIUS_CIRCLE);
+    lv_obj_t* r = part(f, EYE_DX, EY, 80, 80, WHITE, LV_RADIUS_CIRCLE);
+    for (auto e : {l, r}) tween(e, ex_scale, 200, 256, 160, 0, 0);
+    part(f, -EYE_DX, EY - 80, 56, 12, WHITE, 6, -8);
+    part(f, EYE_DX, EY - 80, 56, 12, WHITE, 6, 8);
+    ring(f, 0, MY + 5, 44, 56, 9, LV_RADIUS_CIRCLE, WHITE);
+  } else if (k == "angry") {
+    lv_color_t c = lv_color_hex(0xFF6A6A);
+    part(f, -EYE_DX, EY + 10, EYE_W, 34, c, 17, 12);
+    part(f, EYE_DX, EY + 10, EYE_W, 34, c, 17, -12);
+    part(f, -EYE_DX, EY - 40, 64, 14, c, 7, 25);
+    part(f, EYE_DX, EY - 40, 64, 14, c, 7, -25);
+    arc_part(f, 0, MY + 40, 96, 200, 340, 10, c);
+    tween(f, ex_x, -3, 3, 60, 0, 60, 4);
+  } else if (k == "sleepy") {
+    part(f, -EYE_DX, EY, EYE_W, 12, WHITE, 6);
+    part(f, EYE_DX, EY, EYE_W, 12, WHITE, 6);
+    part(f, 0, MY, 50, 10, WHITE, 5);
+    lv_obj_t* z = label(f, "z z Z", &lv_font_montserrat_24, GREY, 0, 120);
+    lv_obj_align(z, LV_ALIGN_CENTER, 90, EY - 60);
+    lv_obj_set_style_text_letter_space(z, 4, 0);
+    repeat_anim(z, ex_y, EY - 60, EY - 120, 2600, 300);
+    repeat_anim(z, ex_opa, 255, 0, 2600, 300);
+  } else if (k == "love") {
+    lv_color_t c = lv_color_hex(0xFF7AA2);
+    for (int dx : {-EYE_DX, EYE_DX}) {
+      lv_obj_t* h = heart_at(f, dx, EY, 44, c);
+      loop_anim(h, ex_scale, 256, 300, 500);
+    }
+    arc_part(f, 0, MY - 30, 96, 20, 160, 10, c);
+  } else if (k == "laughing") {
+    arc_part(f, -EYE_DX, EY, 64, 200, 340, 12, WHITE);
+    arc_part(f, EYE_DX, EY, 64, 200, 340, 12, WHITE);
+    arc_part(f, 0, MY - 25, 90, 0, 180, 45, WHITE);
+    loop_anim(f, ex_y, cy, cy - 10, 180);
+  } else if (k == "cool") {
+    ring(f, -EYE_DX, EY, 92, 60, 6, 14, WHITE);
+    ring(f, EYE_DX, EY, 92, 60, 6, 14, WHITE);
+    part(f, 0, EY - 8, 50, 8, WHITE, 4);
+    part(f, -EYE_DX - 14, EY - 14, 16, 6, WHITE, 3, -30);
+    part(f, 28, MY, 50, 10, WHITE, 5, -10);
+    tween(f, ex_rot, 0, -40, 400, 800, 400);
+  } else if (k == "sick") {
+    lv_color_t c = lv_color_hex(0x9BE39B);
+    part(f, -EYE_DX, EY, EYE_W, 70, c, 28, -14);
+    part(f, EYE_DX, EY, EYE_W, 70, c, 28, 14);
+    wavy_mouth(f, MY, c);
+    loop_anim(f, ex_x, -6, 6, 1800);
+  } else if (k == "excited") {
+    lv_color_t c = lv_color_hex(0xFFE07A);
+    star(f, -EYE_DX, EY, c);
+    star(f, EYE_DX, EY, c);
+    arc_part(f, 0, MY - 25, 90, 0, 180, 45, c);
+    loop_anim(f, ex_y, cy, cy - 8, 250);
+  } else {
+    part(f, -EYE_DX, EY, EYE_W, EYE_H, WHITE, 28);
+    part(f, EYE_DX, EY, EYE_W, EYE_H, WHITE, 28);
+  }
 }
 
 static void show_unread() {
@@ -441,6 +685,13 @@ static void show_message() {
       lv_obj_set_style_pad_all(cap, 8, 0);
       lv_obj_set_style_radius(cap, 10, 0);
     }
+    return;
+  }
+
+  if (strcmp(type, "mood") == 0) {
+    draw_mood(content, msg["mood"] | "", *text ? -40 : -10);
+    label(content, head.c_str(), &lv_font_montserrat_16, DIM, -185);
+    if (*text) label(content, text, &F24, WHITE, 135, 320);
     return;
   }
 
@@ -780,8 +1031,9 @@ static void fonts_init() {
   F44 = lv_font_montserrat_44;
   F36 = lv_font_montserrat_36;
   F30 = lv_font_montserrat_30;
+  F24 = lv_font_montserrat_24;
   F20 = lv_font_montserrat_20;
-  for (lv_font_t* f : {&F44, &F36, &F30, &F20}) f->fallback = emoji_font;
+  for (lv_font_t* f : {&F44, &F36, &F30, &F24, &F20}) f->fallback = emoji_font;
 }
 
 void ui_init() {

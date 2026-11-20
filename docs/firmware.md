@@ -43,9 +43,9 @@
 | PORTAL | no Wi-Fi config / reset | setup instructions | portal saved |
 | UNREACHABLE | Wi-Fi or MQTT down > 10 s | spinner, LED amber | connected |
 | PAIRING | `config.state == pending` | 4-digit code, LED blue | `config.state == active` |
-| IDLE | active, nothing unread | eyes; a random mood every 2–7 s (blink, wink, look, happy, sleepy, surprise, curious, bounce, asleep with z's); drift a few px (burn-in) | new unread inbox; tap → SHOW (recent) or NOTHING; 3 h → SLEEP |
+| IDLE | active, nothing unread | eyes; a quick mood every 2–7 s (blink, wink, look, happy, sleepy, surprise, curious, bounce, asleep with z's), a full mood face (`draw_mood`, same 14 as mood messages) for 5 s every 30–90 s; drift a few px (burn-in) | new unread inbox; tap → SHOW (recent) or NOTHING; 3 h → SLEEP |
 | UNREAD | new message | "New from {from_name}" + heart, LED red | tap → SHOW |
-| SHOW | tap in UNREAD, or tap in IDLE within 10 min of reading | text / sticker / photo, emoji inline | 60 s timeout or tap → IDLE |
+| SHOW | tap in UNREAD, or tap in IDLE within 10 min of reading | text / sticker / photo / mood face, emoji inline | 60 s timeout or tap → IDLE |
 | RECEIPT | `notice` received | happy eyes + "{by} read it", LED green | 30 s or tap → previous |
 | NIGHT | inside quiet hours | screen off; unread is kept | tap wakes for 30 s; end of quiet hours |
 | SLEEP | 3 h with no tap, message or receipt (from IDLE/UNREAD) | screen off | tap, an unread message, a receipt, a pairing code |
@@ -60,6 +60,10 @@ Events published:
 ## Text layout
 
 Inside the 330 × 330 safe square. Auto-size: try 44 → 36 → 30 px and pick the largest where the text fits in ≤ 4 lines. Center both ways. Caption under a sticker: 30 px, 1–2 lines.
+
+## Mood faces
+
+`draw_mood(parent, key, cy)` in `ui.cpp` builds a 340×280 group from boxes, arcs and labels: eyes on the ±70 px columns, a mouth on the +70 row, extras (brows, tears, sweat, z's, stars, sunglasses) per mood, and one looping animation each (bounce, shiver, falling drop, spinning stars…). Mood messages show the face with the sender line above and the caption below; idle moments show it with the orb's name. The sim's mock screen has a CSS approximation of each face (`MOOD_FACES` in its `index.html`).
 
 ## Sticker sync
 

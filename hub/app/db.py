@@ -32,9 +32,10 @@ CREATE TABLE IF NOT EXISTS messages (
   id            TEXT PRIMARY KEY,
   sender        TEXT NOT NULL,
   sender_name   TEXT NOT NULL,
-  type          TEXT NOT NULL CHECK (type IN ('text','sticker','photo')),
+  type          TEXT NOT NULL CHECK (type IN ('text','sticker','photo','mood')),
   text          TEXT,
   sticker       TEXT,
+  mood          TEXT,
   media_id      TEXT,
   reaction_to   TEXT,
   created_at    INTEGER NOT NULL
@@ -89,6 +90,30 @@ class Database:
         await conn.execute("PRAGMA busy_timeout=5000")
         await conn.executescript(SCHEMA)
         self._conn = conn
+        await self._migrate()
+
+    async def _migrate(self) -> None:
+        """Bring a database from before 'mood' messages up to date (SQLite can't ALTER a CHECK)."""
+        cols = [r["name"] for r in await self.fetchall("PRAGMA table_info(messages)")]
+        if "mood" in cols:
+            return
+        await self.execute("PRAGMA foreign_keys=OFF")
+        await self.conn.executescript(
+            "BEGIN;"
+            "CREATE TABLE messages_v2 ("
+            "  id TEXT PRIMARY KEY, sender TEXT NOT NULL, sender_name TEXT NOT NULL,"
+            "  type TEXT NOT NULL CHECK (type IN ('text','sticker','photo','mood')),"
+            "  text TEXT, sticker TEXT, mood TEXT, media_id TEXT, reaction_to TEXT,"
+            "  created_at INTEGER NOT NULL);"
+            "INSERT INTO messages_v2"
+            "  (id,sender,sender_name,type,text,sticker,media_id,reaction_to,created_at)"
+            "  SELECT id,sender,sender_name,type,text,sticker,media_id,reaction_to,created_at"
+            "  FROM messages;"
+            "DROP TABLE messages;"
+            "ALTER TABLE messages_v2 RENAME TO messages;"
+            "COMMIT;"
+        )
+        await self.execute("PRAGMA foreign_keys=ON")
 
     async def close(self) -> None:
         if self._conn:

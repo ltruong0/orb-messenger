@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from .auth import COOKIE, MAX_AGE, Sessions
 from .config import User
 from .hub import Hub, HubError
+from .moods import MOODS
 from .photos import MAX_UPLOAD
 
 MAX_FIRMWARE = 3 * 1024 * 1024  # app partition size (firmware/partitions.csv)
@@ -41,6 +42,7 @@ class SendBody(BaseModel):
     text: str | None = None
     sticker: str | None = None
     media_id: str | None = None
+    mood: str | None = None
 
 
 class EmojiStickerBody(BaseModel):
@@ -107,7 +109,7 @@ def build_router(hub: Hub, sessions: Sessions) -> APIRouter:
     # ---- messages
     @api.post("/messages", status_code=201)
     async def send(body: SendBody, user: Me) -> dict[str, Any]:
-        return await hub.send(user, body.to, body.text, body.sticker, body.media_id)
+        return await hub.send(user, body.to, body.text, body.sticker, body.media_id, mood=body.mood)
 
     @api.get("/messages")
     async def history(_: Me, before: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
@@ -144,6 +146,10 @@ def build_router(hub: Hub, sessions: Sessions) -> APIRouter:
     @api.delete("/firmware/{model}", status_code=204, response_class=Response)
     async def delete_firmware(model: str, _: Me) -> None:
         await hub.delete_firmware(model)
+
+    @api.get("/moods")
+    async def moods(_: Me) -> list[dict[str, str]]:
+        return MOODS
 
     # ---- stickers & phrases
     @api.get("/stickers")

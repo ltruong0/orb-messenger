@@ -91,6 +91,23 @@ summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;letter-
 .log div{display:flex;gap:8px}.log .t{color:var(--muted);flex:none}
 .log .k-tx{color:#1F8F4E}.log .k-rx{color:#3759D6}.log .k-led{color:#9A3BC2}.log .k-net{color:#1F8FA0}.log .k-screen{font-weight:700}.log .k-warn{color:#B8780A}.log .k-error{color:var(--danger);font-weight:700}.log .k-info{color:var(--muted)}
 .nvs{font-family:var(--mono);font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+
+  /* mood faces (sim-side approximation of the firmware's draw_mood) */
+  .face{display:flex;flex-direction:column;align-items:center;gap:22px;margin:14px 0}
+  .feyes{display:flex;gap:60px}.feyes span{display:block;width:56px;height:96px;border-radius:28px;background:var(--tint,#F4F4F8)}
+  .feyes.squint span,.feyes.closed span{height:14px}.feyes.half span{height:50px}.feyes.narrow span{height:30px;transform:rotate(12deg)}.feyes.narrow span:last-child{transform:rotate(-12deg)}
+  .feyes.droop span{transform:rotate(-14deg)}.feyes.droop span:last-child{transform:rotate(14deg)}
+  .feyes.uneven span:first-child{height:116px}.feyes.uneven span:last-child{height:70px}
+  .feyes.wide span{width:44px;height:120px}.feyes.round span{width:80px;height:80px;border-radius:50%}
+  .feyes.hearts span{width:70px;height:70px;background:none;position:relative}.feyes.hearts span::before,.feyes.hearts span::after{content:"";position:absolute;left:0;top:0;width:40px;height:64px;border-radius:40px 40px 0 0;background:var(--tint);transform:rotate(-45deg);transform-origin:0 100%}.feyes.hearts span::after{left:40px;transform:rotate(45deg);transform-origin:100% 100%}
+  .feyes.arcs span{height:36px;border-radius:0 0 36px 36px;background:none;border:12px solid var(--tint);border-top:0}
+  .feyes.shades span{width:84px;height:56px;border-radius:12px;background:#111}
+  .feyes.stars span{width:60px;height:60px;background:none;position:relative}.feyes.stars span::before,.feyes.stars span::after{content:"";position:absolute;inset:0;background:var(--tint);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+  .mouth{width:70px;height:24px;border:10px solid var(--tint,#F4F4F8);border-top:0;border-radius:0 0 40px 40px}
+  .mouth.frown{border-top:10px solid var(--tint);border-bottom:0;border-radius:40px 40px 0 0}.mouth.line{height:0;border:0;border-bottom:10px solid var(--tint);border-radius:0;width:60px}
+  .mouth.o{width:36px;height:46px;border:10px solid var(--tint);border-radius:50%}.mouth.grin{height:40px;background:var(--tint);border:0;width:90px}
+  .mouth.tilt{height:0;border:0;border-bottom:10px solid var(--tint);width:50px;transform:rotate(-12deg)}.mouth.smirk{width:50px;transform:rotate(-10deg)}
+  .mouth.wave{height:0;border:0;width:70px;border-bottom:10px dotted var(--tint)}
 </style>
 </head>
 <body>
@@ -108,6 +125,25 @@ function esc(s){return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<
 function hhmm(ts){const d = new Date(ts*1000); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
 function sizeClass(t){const n=(t||'').length; return n<=22?'':(n<=44?'s36':'s30');}
 const HEART = '<svg class="heart" viewBox="0 0 24 24"><path fill="#FF4D4D" d="M12 21s-7.5-4.6-9.6-9.2C1 8.3 3.2 4.5 6.8 4.5c2 0 3.5 1 4.2 2.4C11.7 5.5 13.2 4.5 15.2 4.5c3.6 0 5.8 3.8 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+
+// mood faces: eye shape, mouth shape, tint (mirrors firmware ui.cpp draw_mood)
+const MOOD_FACES = {
+  neutral:   {eyes:'open',   mouth:'line',  tint:'#F4F4F8'},
+  happy:     {eyes:'squint', mouth:'smile', tint:'#F4F4F8'},
+  sad:       {eyes:'droop',  mouth:'frown', tint:'#9FB4FF'},
+  confused:  {eyes:'uneven', mouth:'tilt',  tint:'#F4F4F8'},
+  cold:      {eyes:'open',   mouth:'wave',  tint:'#8FD3FF'},
+  hot:       {eyes:'half',   mouth:'o',     tint:'#FF8A5A'},
+  scared:    {eyes:'wide',   mouth:'o',     tint:'#F4F4F8'},
+  surprised: {eyes:'round',  mouth:'o',     tint:'#F4F4F8'},
+  angry:     {eyes:'narrow', mouth:'frown', tint:'#FF6A6A'},
+  sleepy:    {eyes:'closed', mouth:'line',  tint:'#F4F4F8'},
+  love:      {eyes:'hearts', mouth:'smile', tint:'#FF7AA2'},
+  laughing:  {eyes:'arcs',   mouth:'grin',  tint:'#F4F4F8'},
+  cool:      {eyes:'shades', mouth:'smirk', tint:'#F4F4F8'},
+  sick:      {eyes:'droop',  mouth:'wave',  tint:'#9BE39B'},
+  excited:   {eyes:'stars',  mouth:'grin',  tint:'#FFE07A'},
+};
 
 function screenHTML(o, broker){
   if (o.error) {
@@ -139,6 +175,10 @@ function screenHTML(o, broker){
     const who = `${esc(m.from_name)} · ${hhmm(m.ts)}`;
     if (m.type === 'text') {
       return `<div class="safe"><div class="small">${who}</div><div class="big ${sizeClass(m.text)}">${esc(m.text)}</div><div class="small">hold to send a heart back</div></div>`;
+    }
+    if (m.type === 'mood') {
+      const f = MOOD_FACES[m.mood] || MOOD_FACES.neutral;
+      return `<div class="safe"><div class="small">${who}</div><div class="face" style="--tint:${f.tint}"><div class="feyes ${f.eyes}"><span></span><span></span></div><div class="mouth ${f.mouth}"></div></div><div class="small">feels ${esc(m.mood)}${m.text ? ' · ' + esc(m.text) : ''}</div></div>`;
     }
     if (m.type === 'sticker') {
       const img = m.sticker_url ? `<img class="sticker" src="${m.sticker_url}" alt="${esc(m.sticker)}">` : `<div class="mono">[${esc(m.sticker)} not cached]</div>`;

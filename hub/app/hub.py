@@ -22,6 +22,7 @@ from .config import Settings, User
 from .contract import ContractError, Contracts, dumps
 from .db import Database
 from .ids import ORB_ID_RE, STICKER_KEY_RE, ULID_RE, new_ulid
+from .moods import MOOD_KEYS
 from .mqtt import Mqtt, MqttUnavailable
 from .photos import process_photo
 from .stickers import (
@@ -519,6 +520,8 @@ class Hub:
             p["media"] = f"/media/stickers/{msg['sticker']}.png"
         elif msg["type"] == "photo":
             p["media"] = f"/media/photos/{msg['media_id']}.jpg"
+        elif msg["type"] == "mood":
+            p["mood"] = msg["mood"]
         return p
 
     async def send(
@@ -529,6 +532,7 @@ class Hub:
         sticker: str | None = None,
         media_id: str | None = None,
         reaction_to: str | None = None,
+        mood: str | None = None,
     ) -> dict[str, Any]:
         text = (text or "").strip() or None
         if text is not None and len(text) > MAX_TEXT:
@@ -545,10 +549,14 @@ class Hub:
             ):
                 raise HubError(422, "unknown_sticker", f"no sticker {sticker!r}")
             kind = "sticker"
+        elif mood:
+            if mood not in MOOD_KEYS:
+                raise HubError(422, "unknown_mood", f"no mood {mood!r}")
+            kind = "mood"
         elif text:
             kind = "text"
         else:
-            raise HubError(422, "validation", "message needs text, a sticker or a photo")
+            raise HubError(422, "validation", "message needs text, a sticker, a mood or a photo")
         if not to:
             raise HubError(422, "validation", "pick at least one orb")
         recipients: list[dict[str, Any]] = []
@@ -570,6 +578,7 @@ class Hub:
             "type": kind,
             "text": text,
             "sticker": sticker if kind == "sticker" else None,
+            "mood": mood if kind == "mood" else None,
             "media_id": media_id if kind == "photo" else None,
             "reaction_to": reaction_to,
             "created_at": now(),
@@ -577,8 +586,8 @@ class Hub:
         payload = self.inbox_payload(msg)  # validates shape before we store anything
         self.contracts.validate("inbox", payload)
         await self.db.execute(
-            "INSERT INTO messages(id,sender,sender_name,type,text,sticker,media_id,reaction_to,"
-            "created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO messages(id,sender,sender_name,type,text,sticker,mood,media_id,"
+            "reaction_to,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
             tuple(msg.values()),
         )
         deliveries = []
@@ -642,6 +651,7 @@ class Hub:
                     "type": m["type"],
                     "text": m["text"],
                     "sticker": m["sticker"],
+                    "mood": m.get("mood"),
                     "media_url": self.inbox_payload(m).get("media"),
                     "reaction_to": m["reaction_to"],
                     "ts": m["created_at"],

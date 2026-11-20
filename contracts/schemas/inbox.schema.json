@@ -3,20 +3,128 @@
   "$id": "orb/inbox.schema.json",
   "title": "orb/{id}/inbox (hub → orb, retained)",
   "type": "object",
-  "required": ["id", "from", "from_name", "type", "ts"],
+  "required": [
+    "id",
+    "from",
+    "from_name",
+    "type",
+    "ts"
+  ],
   "properties": {
-    "id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
-    "from": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,31}$"},
-    "from_name": {"type": "string", "minLength": 1, "maxLength": 24},
-    "type": {"enum": ["text", "sticker", "photo"]},
-    "text": {"type": "string", "minLength": 1, "maxLength": 80},
-    "sticker": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"},
-    "media": {"type": "string", "pattern": "^/media/(photos|stickers)/[A-Za-z0-9._-]+\\.(jpg|png)$"},
-    "ts": {"type": "integer", "minimum": 1700000000}
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "from": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+    },
+    "from_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 24
+    },
+    "type": {
+      "enum": [
+        "text",
+        "sticker",
+        "photo",
+        "mood"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "sticker": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{1,32}$"
+    },
+    "media": {
+      "type": "string",
+      "pattern": "^/media/(photos|stickers)/[A-Za-z0-9._-]+\\.(jpg|png)$"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 1700000000
+    },
+    "mood": {
+      "enum": [
+        "happy",
+        "sad",
+        "confused",
+        "cold",
+        "hot",
+        "scared",
+        "surprised",
+        "angry",
+        "sleepy",
+        "love",
+        "laughing",
+        "cool",
+        "sick",
+        "excited"
+      ]
+    }
   },
   "allOf": [
-    {"if": {"properties": {"type": {"const": "text"}}}, "then": {"required": ["text"]}},
-    {"if": {"properties": {"type": {"const": "sticker"}}}, "then": {"required": ["sticker", "media"]}},
-    {"if": {"properties": {"type": {"const": "photo"}}}, "then": {"required": ["media"]}}
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "text"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "text"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sticker"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "sticker",
+          "media"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "photo"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "media"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "mood"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "mood"
+        ]
+      }
+    }
   ]
 }

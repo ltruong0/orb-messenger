@@ -557,6 +557,10 @@ class OrbSim:
         head = f"{msg['from_name']} · {time.strftime('%H:%M', time.localtime(msg['ts']))}"
         if kind == "text":
             body = f'"{msg["text"]}"'
+        elif kind == "mood":
+            body = f"[feels {msg['mood']}]"
+            if msg.get("text"):
+                body += f' "{msg["text"]}"'
         elif kind == "sticker":
             cached = self.nvs.sticker_path(msg["sticker"]).exists()
             body = f"[{msg['sticker']}{'' if cached else ' (not cached: caption only)'}]"

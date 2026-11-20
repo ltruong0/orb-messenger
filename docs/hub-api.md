@@ -33,8 +33,9 @@ Pairing: the first `hello` from an unknown orb creates it as `pending` with a 4-
 
 | Method | Path | Body | Result |
 |---|---|---|---|
-| POST | `/api/messages` | `{to:[orb ids], text?, sticker?, media_id?}` | 201 `{id, deliveries:[{orb, status}]}`. Type is `photo` if `media_id`, else `sticker` if `sticker`, else `text`; `text` is the caption for the other two. 422 `validation` (empty, over 80 chars, no `to`), `unknown_orb`, `unknown_sticker`, `unknown_media`, `no_active_recipients` (pending orbs in `to` are skipped). 503 `mqtt_unavailable`. |
-| GET | `/api/messages?before=<id>&limit=50` | | Newest first (ULID order): `[{id, from, from_name, type, text, sticker, media_url, reaction_to, ts, deliveries:[{orb, orb_name, status, delivered_at, read_at}]}]`. `limit` ≤ 100. |
+| POST | `/api/messages` | `{to:[orb ids], text?, sticker?, mood?, media_id?}` | 201 `{id, deliveries:[{orb, status}]}`. Type is `photo` if `media_id`, else `sticker` if `sticker`, else `mood` if `mood`, else `text`; `text` is the caption for the others. 422 `validation` (empty, over 80 chars, no `to`), `unknown_orb`, `unknown_sticker`, `unknown_mood`, `unknown_media`, `no_active_recipients` (pending orbs in `to` are skipped). 503 `mqtt_unavailable`. |
+| GET | `/api/messages?before=<id>&limit=50` | | Newest first (ULID order): `[{id, from, from_name, type, text, sticker, mood, media_url, reaction_to, ts, deliveries:[{orb, orb_name, status, delivered_at, read_at}]}]`. `limit` ≤ 100. |
+| GET | `/api/moods` | | `[{key, label, emoji}]`: the moods an orb can show (the contract's enum; the emoji is for the phone only) |
 
 Reactions arrive here too: a long-press on an orb becomes a `sticker` message from that orb's owner (or from the orb id itself for a shared orb) to the original sender's home orb, with `reaction_to` set.
 

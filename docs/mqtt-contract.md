@@ -52,7 +52,8 @@ This is normative. `contracts/schemas/` mirrors it and `contracts/examples/` mus
 {"id":"01JBX7Q2M3N4P5Q6R7S8T9V0W1","from":"lee","from_name":"Lee","type":"sticker",
  "text":"thinking of you","sticker":"heart-eyes","media":"/media/stickers/heart-eyes.png","ts":1761834120}
 ```
-- `type`: `text` | `sticker` | `photo`
+- `type`: `text` | `sticker` | `photo` | `mood`
+- `mood` (required for `mood`): one of `happy`, `sad`, `confused`, `cold`, `hot`, `scared`, `surprised`, `angry`, `sleepy`, `love`, `laughing`, `cool`, `sick`, `excited`. The orb draws the face itself; `text` is an optional caption. The list is the schema's enum (hub `app/moods.py`, firmware `ui.cpp`); extend all three together.
 - `text`: optional caption, ≤ 80 chars (required for `text`). May contain emoji; orbs draw each grapheme from `media_base + /media/emoji/{seq}.png` where `seq` is its codepoints in lowercase hex joined by `-` with U+FE0F dropped (decisions 46).
 - `sticker` + `media`: required for `sticker`
 - `media`: path relative to `config.media_base`, required for `photo` (466×466 baseline JPEG)
