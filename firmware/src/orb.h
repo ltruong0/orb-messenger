@@ -25,12 +25,14 @@ enum class UiCmdType {
   Led,            // json = led payload ("" = off)
   Notice,         // json = notice payload
   Stickers,       // sticker cache changed
+  Update,         // json = target version, a = status ("downloading", "restarting", "failed: ..."), n = percent
 };
 struct UiCmd {
   UiCmdType type;
   String json;
   String a;
   bool flag = false;
+  int n = 0;
 };
 
 // ui -> net
@@ -44,5 +46,5 @@ struct NetCmd {
 extern QueueHandle_t ui_queue;   // UiCmd*
 extern QueueHandle_t net_queue;  // NetCmd*
 void queues_init();
-void ui_post(UiCmdType type, const String& json = "", const String& a = "", bool flag = false);
+void ui_post(UiCmdType type, const String& json = "", const String& a = "", bool flag = false, int n = 0);
 void net_post(NetCmdType type, const String& msg_id, const String& sticker = "");

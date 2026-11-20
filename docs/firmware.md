@@ -16,7 +16,9 @@
 | Photos + stickers | LVGL's own TJpgd and LodePNG decoders reading LittleFS through `LV_USE_FS_ARDUINO_ESP_LITTLEFS` (drive `L:`), 1 MB image cache in PSRAM | No JPEGDEC/PNGdec: fewer libraries, and media stays in flash as files. |
 | HTTP | `HTTPClient::writeToStream` into LittleFS, sha256 (mbedtls) checked for stickers | |
 | Time | `configTzTime` with the POSIX `tz` from `config` | quiet hours |
-| LED | FastLED, compiled in only with `ORB_LED_PIN` | until then LED modes are just logged |
+| LED | FastLED, compiled in only with `ORB_LED_PIN` | dropped from v1; modes are just logged |
+| Emoji | `lv_imgfont` fallback on the Montserrat copies; PNGs from `/media/emoji/{seq}.png` cached in `/emo/` | decisions 46 |
+| OTA | `Update` into the second app slot from `config.fw` (`partitions.csv`: 2 × 3 MB app + LittleFS) | decisions 47; `make fw-release` |
 
 ## Tasks
 
@@ -41,11 +43,14 @@
 | PORTAL | no Wi-Fi config / reset | setup instructions | portal saved |
 | UNREACHABLE | Wi-Fi or MQTT down > 10 s | spinner, LED amber | connected |
 | PAIRING | `config.state == pending` | 4-digit code, LED blue | `config.state == active` |
-| IDLE | active, nothing unread | eyes; blink every 3–7 s; drift a few px over minutes (burn-in) | inbox newer than `last_read_id` and `led.mode == unread` |
+| IDLE | active, nothing unread | eyes; a random mood every 2–7 s (blink, wink, look, happy, sleepy, surprise, curious, bounce); drift a few px (burn-in) | new unread inbox; tap → SHOW (recent) or NOTHING; 3 h → SLEEP |
 | UNREAD | new message | "New from {from_name}" + heart, LED red | tap → SHOW |
-| SHOW | tap in UNREAD, or tap in IDLE (re-show last) | text / sticker / photo | 60 s timeout → IDLE |
+| SHOW | tap in UNREAD, or tap in IDLE within 10 min of reading | text / sticker / photo, emoji inline | 60 s timeout or tap → IDLE |
 | RECEIPT | `notice` received | happy eyes + "{by} read it", LED green | 30 s or tap → previous |
-| NIGHT | inside quiet hours | backlight off, LED off; unread is kept | tap wakes for 30 s; end of quiet hours |
+| NIGHT | inside quiet hours | screen off; unread is kept | tap wakes for 30 s; end of quiet hours |
+| SLEEP | 3 h with no tap, message or receipt (from IDLE/UNREAD) | screen off | tap, an unread message, a receipt, a pairing code |
+| NOTHING | tap in IDLE when the last message was read > 10 min ago (or never this boot) | calm eyes + "no new messages" + when the last one came | 2.5 s or tap |
+| UPDATING | `config.fw` names another version for this model | progress ring, version, "don't unplug me"; taps and messages ignored | reboot, or 15 s after a failure |
 
 Events published:
 - **On inbox arrival:** `event {type:"received", msg_id}`, at most once per msg id.
@@ -65,7 +70,17 @@ When `orb/all/stickers` arrives with a new `rev`: diff it against `/stk/index.js
 - [x] Display + touch + LVGL (picture confirmed; rotation fixed 2026-11-16)
 - [x] Portal and NVS settings, button reset (portal used to provision orb-1338)
 - [x] MQTT connect with LWT; hello; pairing screen (orb-1338 paired and active against the cluster)
-- [ ] Idle eyes, unread, show text / sticker / photo, receipt, night, unreachable
-- [ ] LED modes
-- [ ] Sticker sync
+- [x] Idle eyes, unread, show text / sticker / photo, receipt (all seen on orb-1338; night and unreachable only by code review)
+- [x] Sleep after 3 h, re-show window, moods, inline emoji (2026-11-20)
+- [x] OTA via `make fw-release` (2026-11-20)
+- [ ] LED modes: dropped from v1
+- [x] Sticker sync
 - [ ] 24 h soak: reconnects cleanly after AP reboot and broker restart, no heap leak (log free heap/PSRAM hourly)
+
+## Updating orbs over the air
+
+1. Bump `ORB_FW_VERSION` in `firmware/platformio.ini` (semver).
+2. `make fw-release`: builds, logs in to the hub with `HUB_PIN` from `.env`, uploads `firmware.bin` with the version and the model for `ORB_BOARD`.
+3. The hub republishes `config` with `fw` to every active orb of that model. Each orb shows "updating", streams the image into its spare app slot, verifies the sha256 and reboots; the Orbs tab shows the new `fw` once it says hello again. Rollback = upload the older build. Removing the firmware in the app stops the rollout but doesn't downgrade anything.
+
+The partition table (`firmware/partitions.csv`) cannot change over the air; that needs USB (`make fw-flash`) and wipes LittleFS.

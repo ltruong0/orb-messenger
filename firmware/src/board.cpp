@@ -203,6 +203,7 @@ bool board_init() {
     log_e("LittleFS mount failed");
   } else {
     if (!LittleFS.exists("/stk")) LittleFS.mkdir("/stk");
+    if (!LittleFS.exists("/emo")) LittleFS.mkdir("/emo");
     log_i("LittleFS %u/%u KB used", LittleFS.usedBytes() / 1024, LittleFS.totalBytes() / 1024);
   }
 

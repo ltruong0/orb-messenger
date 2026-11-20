@@ -7,13 +7,21 @@
 #include <time.h>
 
 #include "board.h"
+#include "emoji.h"
 #include "led.h"
 #include "orb.h"
 #include "settings.h"
 
-enum class St { Boot, Portal, Unreachable, Waiting, Pairing, Idle, Unread, Show, Receipt, Night };
-static const char* ST_NAMES[] = {"boot",   "portal", "unreachable", "waiting", "pairing",
-                                 "idle",   "unread", "show",        "receipt", "night"};
+enum class St { Boot, Portal, Unreachable, Waiting, Pairing, Idle, Unread, Show, Receipt, Night, Sleep, Nothing, Updating };
+static const char* ST_NAMES[] = {"boot", "portal", "unreachable", "waiting", "pairing", "idle", "unread",
+                                 "show", "receipt", "night", "sleep", "nothing", "updating"};
+
+#ifndef ORB_SLEEP_AFTER_MS
+#define ORB_SLEEP_AFTER_MS (3UL * 60 * 60 * 1000)  // screen off after 3 h without a tap or a message
+#endif
+#ifndef ORB_RESHOW_MS
+#define ORB_RESHOW_MS (10UL * 60 * 1000)  // a tap re-opens a read message for this long
+#endif
 
 static St state = St::Boot, prev_state = St::Idle, night_resume = St::Idle;
 static lv_obj_t* root = nullptr;
@@ -23,6 +31,9 @@ static lv_timer_t* anim_timer = nullptr;
 static lv_obj_t* eye_l = nullptr;
 static lv_obj_t* eye_r = nullptr;
 static lv_obj_t* eyes = nullptr;
+static lv_obj_t* upd_arc = nullptr;
+static lv_obj_t* upd_pct = nullptr;
+static lv_obj_t* upd_status = nullptr;
 
 // Current state the hub gave us
 static bool has_config = false, connected = false;
@@ -37,6 +48,13 @@ static uint32_t deadline = 0;    // show / receipt / night-wake timeout
 static uint32_t boot_held = 0;   // BOOT button hold start
 static uint32_t quiet_check = 0;
 static bool screen_on = true;
+static uint32_t last_activity = 0;  // last tap / message / receipt, for sleep
+static uint32_t read_at = 0;        // when the current message was opened (0 = not this boot)
+static int drift_x = 0, drift_y = -70;  // idle eyes offset, nudged now and then against burn-in
+
+// Montserrat copies whose fallback is an image font of the hub-rendered emoji PNGs.
+static lv_font_t F44, F36, F30, F20;
+static lv_font_t* emoji_font = nullptr;
 
 static const lv_color_t WHITE = lv_color_hex(0xF4F4F8);
 static const lv_color_t GREY = lv_color_hex(0x9A9AA8);
@@ -51,7 +69,7 @@ static void clear() {
     anim_timer = nullptr;
   }
   lv_anim_delete(nullptr, nullptr);
-  eye_l = eye_r = eyes = nullptr;
+  eye_l = eye_r = eyes = upd_arc = upd_pct = upd_status = nullptr;
   lv_obj_clean(content);
 }
 
@@ -81,7 +99,7 @@ static lv_obj_t* box(lv_obj_t* parent, int w, int h, lv_color_t color, int radiu
 
 // Largest of 44 / 36 / 30 px where the text fits in max_lines inside 330 px.
 static const lv_font_t* fit_font(const char* txt, int max_lines) {
-  const lv_font_t* fonts[] = {&lv_font_montserrat_44, &lv_font_montserrat_36, &lv_font_montserrat_30};
+  const lv_font_t* fonts[] = {&F44, &F36, &F30};
   for (auto f : fonts) {
     lv_point_t sz;
     lv_text_get_size(&sz, txt, f, 0, 4, 330, LV_TEXT_FLAG_NONE);
@@ -107,6 +125,20 @@ static String clock_text(long ts) {
   strftime(buf, sizeof(buf), "%H:%M", &tmv);
   return String(buf);
 }
+
+// "14:02" if ts is today, else the weekday; "" when the clock isn't set.
+static String when_text(long ts) {
+  if (!ts || !time_valid()) return "";
+  time_t now = time(nullptr), t = ts;
+  struct tm a, b;
+  localtime_r(&now, &a);
+  localtime_r(&t, &b);
+  char buf[12];
+  strftime(buf, sizeof(buf), a.tm_yday == b.tm_yday && a.tm_year == b.tm_year ? "%H:%M" : "%A", &b);
+  return String(buf);
+}
+
+static void activity() { last_activity = millis(); }
 
 static void set_state(St s) {
   if (s != state) log_i("state %s -> %s", ST_NAMES[(int)state], ST_NAMES[(int)s]);
@@ -169,23 +201,103 @@ static void show_pairing(const String& code) {
   label(content, "enter this code in the app", &lv_font_montserrat_20, WHITE, 115);
 }
 
-static void blink_anim_cb(void* obj, int32_t v) { lv_obj_set_height((lv_obj_t*)obj, v); }
+// ---------------------------------------------------------------- idle face
+// Two rounded boxes. Every few seconds one "mood" plays as a go-hold-return
+// animation, so the face never sits still (burn-in) and feels alive.
+static const int EYE_W = 56, EYE_H = 96, EYE_DX = 70, EYE_Y = -70;
 
-static void blink_timer_cb(lv_timer_t* t) {
-  if (!eye_l) return;
-  for (auto e : {eye_l, eye_r}) {
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, e);
-    lv_anim_set_exec_cb(&a, blink_anim_cb);
-    lv_anim_set_values(&a, 96, 8);
-    lv_anim_set_duration(&a, 90);
-    lv_anim_set_playback_duration(&a, 110);
-    lv_anim_start(&a);
+static void ex_h(void* o, int32_t v) { lv_obj_set_height((lv_obj_t*)o, v); }
+static void ex_w(void* o, int32_t v) { lv_obj_set_width((lv_obj_t*)o, v); }
+static void ex_x(void* o, int32_t v) { lv_obj_set_x((lv_obj_t*)o, v); }
+static void ex_y(void* o, int32_t v) { lv_obj_set_y((lv_obj_t*)o, v); }
+
+// from -> to over `go` ms, hold, back over `back` ms; `plays` times with 120 ms between.
+static void tween(lv_obj_t* o, lv_anim_exec_xcb_t cb, int32_t from, int32_t to, uint32_t go,
+                  uint32_t hold, uint32_t back, uint32_t plays = 1) {
+  lv_anim_t a;
+  lv_anim_init(&a);
+  lv_anim_set_var(&a, o);
+  lv_anim_set_exec_cb(&a, cb);
+  lv_anim_set_values(&a, from, to);
+  lv_anim_set_duration(&a, go);
+  lv_anim_set_playback_delay(&a, hold);
+  lv_anim_set_playback_duration(&a, back);
+  lv_anim_set_repeat_count(&a, plays);
+  lv_anim_set_repeat_delay(&a, 120);
+  lv_anim_start(&a);
+}
+
+enum Mood { Blink, DoubleBlink, Wink, Look, Happy, Sleepy, Surprise, Curious, Bounce, MOOD_COUNT };
+static const uint8_t MOOD_WEIGHT[MOOD_COUNT] = {10, 2, 2, 4, 2, 2, 2, 2, 1};
+
+// Plays one mood; returns roughly how long it takes.
+static uint32_t play_mood(Mood m) {
+  lv_obj_t* both[] = {eye_l, eye_r};
+  switch (m) {
+    case Blink:
+      for (auto e : both) tween(e, ex_h, EYE_H, 8, 90, 0, 110);
+      return 200;
+    case DoubleBlink:
+      for (auto e : both) tween(e, ex_h, EYE_H, 8, 80, 0, 90, 2);
+      return 460;
+    case Wink:
+      tween(random(2) ? eye_l : eye_r, ex_h, EYE_H, 8, 100, 250, 140);
+      return 490;
+    case Look: {
+      int d = random(2) ? 24 : -24;
+      tween(eye_l, ex_x, -EYE_DX, -EYE_DX + d, 220, 900, 260);
+      tween(eye_r, ex_x, EYE_DX, EYE_DX + d, 220, 900, 260);
+      return 1380;
+    }
+    case Happy:
+      for (auto e : both) {
+        tween(e, ex_h, EYE_H, 34, 180, 1400, 260);
+        tween(e, ex_y, 0, -16, 180, 1400, 260);
+      }
+      return 1840;
+    case Sleepy:
+      for (auto e : both) {
+        tween(e, ex_h, EYE_H, 46, 900, 2200, 500);
+        tween(e, ex_y, 0, 14, 900, 2200, 500);
+      }
+      return 3600;
+    case Surprise:
+      for (auto e : both) {
+        tween(e, ex_w, EYE_W, 74, 140, 700, 220);
+        tween(e, ex_h, EYE_H, 118, 140, 700, 220);
+      }
+      return 1060;
+    case Curious: {
+      lv_obj_t* up = random(2) ? eye_l : eye_r;
+      lv_obj_t* dn = up == eye_l ? eye_r : eye_l;
+      tween(up, ex_h, EYE_H, 114, 240, 1200, 260);
+      tween(up, ex_y, 0, -10, 240, 1200, 260);
+      tween(dn, ex_h, EYE_H, 70, 240, 1200, 260);
+      tween(dn, ex_y, 0, 10, 240, 1200, 260);
+      return 1700;
+    }
+    case Bounce:
+      tween(eyes, ex_y, drift_y, drift_y - 16, 110, 0, 130, 2);
+      return 600;
+    default:
+      return 0;
   }
-  // Drift a few px every so often so static pixels don't burn in.
-  if (random(0, 8) == 0 && eyes) lv_obj_align(eyes, LV_ALIGN_CENTER, random(-8, 9), random(-8, 9));
-  lv_timer_set_period(t, random(3000, 7000));
+}
+
+static void mood_timer_cb(lv_timer_t* t) {
+  if (!eye_l) return;
+  int total = 0;
+  for (auto w : MOOD_WEIGHT) total += w;
+  int r = random(0, total), m = 0;
+  while (r >= MOOD_WEIGHT[m]) r -= MOOD_WEIGHT[m++];
+  uint32_t dur = play_mood((Mood)m);
+  // Nudge the whole face a few px now and then so no pixel is lit for hours.
+  if (m != Bounce && random(0, 6) == 0) {
+    drift_x = random(-8, 9);
+    drift_y = EYE_Y + random(-8, 9);
+    lv_obj_align(eyes, LV_ALIGN_CENTER, drift_x, drift_y);
+  }
+  lv_timer_set_period(t, dur + random(1800, 5200));
 }
 
 static void show_idle() {
@@ -193,17 +305,36 @@ static void show_idle() {
   set_state(St::Idle);
   eyes = lv_obj_create(content);
   lv_obj_remove_style_all(eyes);
-  lv_obj_set_size(eyes, 200, 120);
+  lv_obj_set_size(eyes, 220, 140);
   lv_obj_remove_flag(eyes, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
-  lv_obj_align(eyes, LV_ALIGN_CENTER, 0, -30);
-  eye_l = box(eyes, 56, 96, WHITE, 28);
-  eye_r = box(eyes, 56, 96, WHITE, 28);
+  lv_obj_add_flag(eyes, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+  lv_obj_align(eyes, LV_ALIGN_CENTER, drift_x, drift_y);
+  eye_l = box(eyes, EYE_W, EYE_H, WHITE, 28);
+  eye_r = box(eyes, EYE_W, EYE_H, WHITE, 28);
   lv_obj_set_align(eye_l, LV_ALIGN_CENTER);
   lv_obj_set_align(eye_r, LV_ALIGN_CENTER);
-  lv_obj_set_x(eye_l, -70);
-  lv_obj_set_x(eye_r, 70);
+  lv_obj_set_x(eye_l, -EYE_DX);
+  lv_obj_set_x(eye_r, EYE_DX);
   if (!cfg_name.isEmpty()) label(content, cfg_name.c_str(), &lv_font_montserrat_20, GREY, 70);
-  anim_timer = lv_timer_create(blink_timer_cb, random(3000, 7000), nullptr);
+  anim_timer = lv_timer_create(mood_timer_cb, random(2000, 5000), nullptr);
+}
+
+// Tap in idle with nothing recent: calm eyes and a note, back to idle after a moment.
+static void show_nothing_new() {
+  clear();
+  set_state(St::Nothing);
+  deadline = millis() + 2500;
+  for (int dx : {-EYE_DX, EYE_DX}) {
+    lv_obj_t* e = box(content, EYE_W, 30, WHITE, 15);
+    lv_obj_align(e, LV_ALIGN_CENTER, dx, -70);
+  }
+  label(content, "no new messages", &lv_font_montserrat_24, WHITE, 20);
+  if (!msg.isNull()) {
+    String from = msg["from_name"] | "";
+    String when = when_text(msg["ts"] | 0L);
+    String sub = "last one from " + from + (when.isEmpty() ? "" : " \xC2\xB7 " + when);
+    label(content, sub.c_str(), &lv_font_montserrat_16, DIM, 70);
+  }
 }
 
 static void heart(lv_obj_t* parent, int y) {
@@ -251,7 +382,9 @@ static void show_message() {
   set_state(St::Show);
   deadline = millis() + 60000;
   const char* type = msg["type"] | "text";
-  const char* text = msg["text"] | "";
+  emoji_reset();
+  String text_s = emoji_rewrite(msg["text"] | "");
+  const char* text = text_s.c_str();
   String from = msg["from_name"] | "";
   String when = clock_text(msg["ts"] | 0L);
   String head = when.isEmpty() ? from : from + " \xC2\xB7 " + when;
@@ -278,7 +411,7 @@ static void show_message() {
     lv_obj_center(l);
     lv_obj_align(pill, LV_ALIGN_CENTER, 0, 150);
     if (*text) {
-      lv_obj_t* cap = label(content, text, &lv_font_montserrat_20, WHITE, 100, 300);
+      lv_obj_t* cap = label(content, text, &F20, WHITE, 100, 300);
       lv_obj_set_style_bg_color(cap, lv_color_hex(0x101016), 0);
       lv_obj_set_style_bg_opa(cap, LV_OPA_70, 0);
       lv_obj_set_style_pad_all(cap, 8, 0);
@@ -296,7 +429,7 @@ static void show_message() {
     } else {
       label(content, msg["sticker"] | "", &lv_font_montserrat_30, GREY, -55);
     }
-    if (*text) label(content, text, &lv_font_montserrat_30, WHITE, 65);
+    if (*text) label(content, text, &F30, WHITE, 65);
     label(content, head.c_str(), &lv_font_montserrat_16, DIM, -175);
     return;
   }
@@ -338,6 +471,52 @@ static void sent_heart_anim() {
   lv_anim_start(&a);
 }
 
+// OTA in progress: the orb is deliberately unresponsive, say so.
+static void show_updating(const String& version) {
+  clear();
+  set_state(St::Updating);
+  deadline = 0;
+  if (!screen_on) {
+    screen_on = true;
+    board_screen(true);
+  }
+  label(content, "updating", &lv_font_montserrat_20, GREY, -150);
+  String v = "to " + version;
+  label(content, v.c_str(), &lv_font_montserrat_24, WHITE, -112);
+  upd_arc = lv_arc_create(content);
+  lv_obj_remove_style(upd_arc, nullptr, LV_PART_KNOB);
+  lv_obj_set_size(upd_arc, 150, 150);
+  lv_arc_set_rotation(upd_arc, 270);
+  lv_arc_set_bg_angles(upd_arc, 0, 360);
+  lv_arc_set_range(upd_arc, 0, 100);
+  lv_arc_set_value(upd_arc, 0);
+  lv_obj_set_style_arc_width(upd_arc, 10, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(upd_arc, 10, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_color(upd_arc, lv_color_hex(0x2A2A36), LV_PART_MAIN);
+  lv_obj_set_style_arc_color(upd_arc, lv_color_hex(0x4682FF), LV_PART_INDICATOR);
+  lv_obj_remove_flag(upd_arc, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_align(upd_arc, LV_ALIGN_CENTER, 0, -5);
+  upd_pct = label(content, "0%", &lv_font_montserrat_36, WHITE, -5, 140);
+  upd_status = label(content, "downloading", &lv_font_montserrat_16, GREY, 105);
+  label(content, "don't unplug me", &lv_font_montserrat_16, DIM, 150);
+}
+
+static void update_progress(const String& version, const String& status, int pct) {
+  if (state != St::Updating) show_updating(version);
+  if (status.startsWith("failed")) {
+    lv_label_set_text(upd_status, status.c_str());
+    lv_obj_set_style_text_color(upd_status, RED, 0);
+    lv_obj_set_style_arc_color(upd_arc, RED, LV_PART_INDICATOR);
+    deadline = millis() + 15000;  // then back to whatever we were doing
+    return;
+  }
+  lv_label_set_text(upd_status, status.c_str());
+  if (pct >= 0) {
+    lv_arc_set_value(upd_arc, pct);
+    lv_label_set_text_fmt(upd_pct, "%d%%", pct);
+  }
+}
+
 // Pick the "resting" screen for the current hub state.
 static void show_resting() {
   if (!connected) return show_unreachable();
@@ -375,9 +554,38 @@ static void leave_night() {
   show_resting();
 }
 
+// ---------------------------------------------------------------- sleep (inactivity)
+static void enter_sleep() {
+  log_i("no activity for %lu min, screen off", (unsigned long)(ORB_SLEEP_AFTER_MS / 60000));
+  set_state(St::Sleep);
+  clear();
+  screen_on = false;
+  board_screen(false);
+}
+
+// Panel back on without drawing; the caller picks the screen.
+static void wake_screen() {
+  set_state(St::Idle);
+  screen_on = true;
+  board_screen(true);
+  activity();
+}
+
+static void leave_sleep() {
+  wake_screen();
+  show_resting();
+}
+
 // ---------------------------------------------------------------- input
 static void on_tap() {
+  activity();
   switch (state) {
+    case St::Sleep:
+      leave_sleep();
+      break;
+    case St::Nothing:
+      show_idle();
+      break;
     case St::Night:
       // wake for 30 s
       screen_on = true;
@@ -391,10 +599,13 @@ static void on_tap() {
         net_post(NetCmdType::Read, msg["id"] | "");
         msg_unread = false;
       }
+      read_at = millis();
       show_message();
       break;
     case St::Idle:
-      if (!msg.isNull()) show_message();
+      // Re-open only something recent; an old read message stays in the phone's history.
+      if (!msg.isNull() && read_at && millis() - read_at < ORB_RESHOW_MS) show_message();
+      else show_nothing_new();
       break;
     case St::Show:
       show_idle();
@@ -409,6 +620,7 @@ static void on_tap() {
 }
 
 static void on_long_press() {
+  activity();
   if (state == St::Show && !msg.isNull()) {
     net_post(NetCmdType::React, msg["id"] | "", "purple-heart");
     sent_heart_anim();
@@ -447,20 +659,21 @@ static void handle(UiCmd* c) {
       connected = false;
       if (!c->a.isEmpty()) last_host = c->a;
       led_local_unreachable(true);
-      if (state != St::Portal && state != St::Night) show_unreachable();
+      if (state != St::Portal && state != St::Night && state != St::Sleep && state != St::Updating) show_unreachable();
       break;
     case UiCmdType::Waiting:
       connected = true;
       led_local_unreachable(false);
       if (!has_config || state == St::Unreachable) {
         has_config = false;
-        if (state != St::Night) show_waiting();
+        if (state != St::Night && state != St::Sleep && state != St::Updating) show_waiting();
       }
       break;
     case UiCmdType::Pairing:
       connected = true;
       has_config = false;
       led_local_unreachable(false);
+      if (state == St::Sleep) wake_screen();
       if (state != St::Night) show_pairing(c->a);
       break;
     case UiCmdType::Active:
@@ -476,7 +689,15 @@ static void handle(UiCmd* c) {
       msg = d;
       msg_photo = c->a;
       msg_unread = c->flag;
-      if (state == St::Night) break;  // shown when the night ends or on wake
+      if (new_id != cur_id) {
+        read_at = 0;
+        activity();
+      }
+      if (state == St::Night || state == St::Updating) break;  // shown later
+      if (state == St::Sleep) {
+        if (!msg_unread) break;  // a replayed, already-read message doesn't wake the screen
+        wake_screen();
+      }
       if (msg_unread) {
         if (state == St::Receipt) prev_state = St::Unread;
         else show_unread();
@@ -502,7 +723,9 @@ static void handle(UiCmd* c) {
     case UiCmdType::Notice: {
       JsonDocument d;
       if (deserializeJson(d, c->json)) break;
-      if (state == St::Night || state == St::Portal || state == St::Unreachable) break;
+      if (state == St::Night || state == St::Portal || state == St::Unreachable || state == St::Updating) break;
+      if (state == St::Sleep) wake_screen();
+      activity();
       if (state != St::Receipt) prev_state = state;
       String by = d["by"] | "someone";
       String type = d["type"] | "";
@@ -512,11 +735,33 @@ static void handle(UiCmd* c) {
     case UiCmdType::Stickers:
       if (state == St::Show) show_message();
       break;
+    case UiCmdType::Update:
+      update_progress(c->json, c->a, c->n);
+      break;
   }
 }
 
 // ---------------------------------------------------------------- public
+static const void* emoji_cb(const lv_font_t*, uint32_t unicode, uint32_t, int32_t* offset_y, void*) {
+  const char* file = emoji_path(unicode);
+  if (!file) return nullptr;
+  static char src[48];
+  snprintf(src, sizeof(src), "L:%s", file);
+  *offset_y = 0;
+  return src;
+}
+
+static void fonts_init() {
+  emoji_font = lv_imgfont_create(44, emoji_cb, nullptr);
+  F44 = lv_font_montserrat_44;
+  F36 = lv_font_montserrat_36;
+  F30 = lv_font_montserrat_30;
+  F20 = lv_font_montserrat_20;
+  for (lv_font_t* f : {&F44, &F36, &F30, &F20}) f->fallback = emoji_font;
+}
+
 void ui_init() {
+  fonts_init();
   root = lv_screen_active();
   lv_obj_set_style_bg_color(root, lv_color_black(), 0);
   lv_obj_set_style_bg_opa(root, LV_OPA_COVER, 0);
@@ -535,6 +780,7 @@ void ui_init() {
   label(content, "orb", &lv_font_montserrat_36, WHITE, -20);
   label(content, orb_id().c_str(), &lv_font_montserrat_16, DIM, 30);
   lv_timer_handler();
+  activity();
 }
 
 void ui_loop() {
@@ -547,7 +793,8 @@ void ui_loop() {
   uint32_t now = millis();
   if (deadline && now > deadline) {
     deadline = 0;
-    if (state == St::Show) show_idle();
+    if (state == St::Show || state == St::Nothing) show_idle();
+    else if (state == St::Updating) show_resting();
     else if (state == St::Receipt) {
       set_state(prev_state);
       show_resting();
@@ -560,9 +807,12 @@ void ui_loop() {
   if (now - quiet_check > 15000) {
     quiet_check = now;
     bool q = in_quiet_hours();
-    if (q && state != St::Night && state != St::Portal && state != St::Unreachable) enter_night();
+    if (q && state != St::Night && state != St::Portal && state != St::Unreachable && state != St::Updating) enter_night();
     else if (!q && state == St::Night) leave_night();
   }
+
+  // Burn-in guard: nothing happened for a long time, turn the panel off.
+  if ((state == St::Idle || state == St::Unread) && now - last_activity > ORB_SLEEP_AFTER_MS) enter_sleep();
 
   // Hold BOOT for 5 s: forget Wi-Fi and reboot into the portal.
   if (board_boot_pressed()) {

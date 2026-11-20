@@ -1164,7 +1164,7 @@
 /** Draw a placeholder rectangle instead of nothing when a glyph is missing
  *  from the font.
  */
-#define LV_USE_FONT_PLACEHOLDER 1
+#define LV_USE_FONT_PLACEHOLDER 0  /* unknown glyphs draw nothing instead of a box */
 
 /** Load fonts by name, share them between widgets and free them by reference
  *  counting.
@@ -1178,7 +1178,7 @@
 #endif /*LV_USE_FONT_MANAGER*/
 
 /** Use images as glyphs in label and span widgets, e.g. to render emojis. */
-#define LV_USE_IMGFONT 0
+#define LV_USE_IMGFONT 1  /* inline emoji: PNGs from the hub via a fallback font */
 
 /** FreeType */
 #define LV_USE_FREETYPE 0

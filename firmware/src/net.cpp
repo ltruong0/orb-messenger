@@ -2,6 +2,7 @@
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <Update.h>
 #include <LittleFS.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
@@ -10,6 +11,7 @@
 
 #include "orb.h"
 #include "pins.h"
+#include "emoji.h"
 #include "settings.h"
 
 static String id, prefix, status_topic;
@@ -170,6 +172,86 @@ static void sync_stickers(const String& json) {
 }
 
 // ---------------------------------------------------------------- MQTT in
+// ---------------------------------------------------------------- OTA (decisions 47)
+static String fw_tried;  // version attempted this boot, so a bad image can't loop
+
+static void ota_fail(const String& version, const String& why) {
+  log_e("update to %s failed: %s", version.c_str(), why.c_str());
+  Update.abort();
+  ui_post(UiCmdType::Update, version, "failed: " + why, false, -1);
+}
+
+// config.fw names the build every orb of this model should run. Different version
+// (either direction) and matching model -> stream it into the other app slot, verify
+// the sha256, reboot. The UI shows progress; nothing else happens on net_task meanwhile.
+static void ota_update(JsonVariantConst fw) {
+  String version = fw["version"] | "", model = fw["model"] | "", url = fw["url"] | "";
+  String sha = fw["sha256"] | "";
+  size_t size = fw["size"] | 0;
+  if (model != ORB_MODEL || version.isEmpty() || version == ORB_FW_VERSION || version == fw_tried) return;
+  if (!size || url.isEmpty() || media_base.isEmpty()) return;
+  fw_tried = version;
+  log_i("firmware %s -> %s (%u B)", ORB_FW_VERSION, version.c_str(), (unsigned)size);
+  ui_post(UiCmdType::Update, version, "downloading", false, 0);
+
+  HTTPClient http;
+  http.setTimeout(30000);
+  http.setReuse(false);
+  if (!http.begin(media_base + url)) return ota_fail(version, "bad url");
+  int code = http.GET();
+  if (code != 200) {
+    http.end();
+    return ota_fail(version, "HTTP " + String(code));
+  }
+  if (http.getSize() != (int)size) {
+    http.end();
+    return ota_fail(version, "size " + String(http.getSize()) + " != " + String(size));
+  }
+  if (!Update.begin(size)) {
+    http.end();
+    return ota_fail(version, Update.errorString());
+  }
+  mbedtls_sha256_context ctx;
+  mbedtls_sha256_init(&ctx);
+  mbedtls_sha256_starts(&ctx, 0);
+  WiFiClient* stream = http.getStreamPtr();
+  static uint8_t buf[4096];
+  size_t got = 0;
+  int shown = -1;
+  uint32_t last_data = millis();
+  while (got < size && http.connected()) {
+    size_t avail = stream->available();
+    if (!avail) {
+      if (millis() - last_data > 30000) break;
+      delay(1);
+      continue;
+    }
+    size_t n = stream->readBytes(buf, min(avail, sizeof(buf)));
+    if (Update.write(buf, n) != n) break;
+    mbedtls_sha256_update(&ctx, buf, n);
+    got += n;
+    last_data = millis();
+    int pct = got * 100 / size;
+    if (pct / 2 != shown / 2) {
+      shown = pct;
+      ui_post(UiCmdType::Update, version, "downloading", false, pct);
+    }
+  }
+  http.end();
+  unsigned char dig[32];
+  mbedtls_sha256_finish(&ctx, dig);
+  mbedtls_sha256_free(&ctx);
+  char hex[65];
+  for (int i = 0; i < 32; i++) sprintf(hex + 2 * i, "%02x", dig[i]);
+  if (got != size) return ota_fail(version, "short read " + String(got) + "/" + String(size));
+  if (sha != hex) return ota_fail(version, "sha256 mismatch");
+  if (!Update.end(true)) return ota_fail(version, Update.errorString());
+  log_i("update to %s written, restarting", version.c_str());
+  ui_post(UiCmdType::Update, version, "restarting", false, 100);
+  delay(1500);
+  ESP.restart();
+}
+
 static void on_config(const String& json) {
   JsonDocument d;
   if (deserializeJson(d, json)) return;
@@ -194,6 +276,18 @@ static void on_config(const String& json) {
     pending_stickers = "";
     sync_stickers(m);
   }
+  if (!d["fw"].isNull()) ota_update(d["fw"]);
+}
+
+// Emoji in the text are drawn from small PNGs the hub renders on request.
+static void fetch_emoji(const char* text) {
+  String seqs[EMOJI_MAX];
+  int n = emoji_scan(text, seqs, EMOJI_MAX);
+  for (int i = 0; i < n; i++) {
+    String file = emoji_file(seqs[i]);
+    if (LittleFS.exists(file)) continue;
+    if (!download("/media/emoji/" + seqs[i] + ".png", file.c_str(), "")) log_w("emoji %s not fetched", seqs[i].c_str());
+  }
 }
 
 static void on_inbox(const String& json) {
@@ -206,6 +300,7 @@ static void on_inbox(const String& json) {
     photo = photo_slot ? "/p1.jpg" : "/p0.jpg";
     if (!download(d["media"] | "", photo.c_str(), "")) photo = "";
   }
+  fetch_emoji(d["text"] | "");
   bool unread = mid != settings.last_read_id;
   if (unread && mid != settings.last_received_id) {
     publish_event("received", mid);

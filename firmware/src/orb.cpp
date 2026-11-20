@@ -22,8 +22,8 @@ void queues_init() {
   net_queue = xQueueCreate(8, sizeof(NetCmd*));
 }
 
-void ui_post(UiCmdType type, const String& json, const String& a, bool flag) {
-  auto* c = new UiCmd{type, json, a, flag};
+void ui_post(UiCmdType type, const String& json, const String& a, bool flag, int n) {
+  auto* c = new UiCmd{type, json, a, flag, n};
   if (xQueueSend(ui_queue, &c, pdMS_TO_TICKS(500)) != pdTRUE) {
     log_w("ui queue full, dropping cmd %d", (int)type);
     delete c;

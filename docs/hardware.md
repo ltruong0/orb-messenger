@@ -33,7 +33,7 @@ Two Waveshare round 466×466 AMOLEDs are supported; `-DORB_BOARD` in `firmware/p
 | Also | PCF85063 RTC, QMI8658 IMU, TCA9554 expander, SD on 1/2/3/41 | ⚠ expander use unknown |
 | Buttons | BOOT GPIO0; PWR through the PMU (PKEY irq) | |
 
-## Status LED
+## Status LED (dropped from v1, 2026-11-20)
 
 - One SK6812 or WS2812B mini (or a 4–8 LED ring) behind a translucent window, diffused.
 - Power from the 5 V / VBUS rail (WS2812B wants ≥ 3.5 V), 330 Ω series resistor on data, 10–100 µF across the LED supply.
