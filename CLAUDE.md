@@ -44,6 +44,7 @@ make fw-secrets      # firmware/secrets.ini (gitignored) from .env: broker passw
 make fw-build        # compile the orb firmware (pioarduino; pio from `uv tool install --python 3.12 platformio`)
 make fw-flash        # build + flash over USB (FW_PORT=/dev/cu.usbmodemXXX)
 make fw-monitor      # serial log at 115200 (needs a real tty; from scripts use pyserial directly)
+make fw-release      # build + upload firmware.bin to the hub for OTA (version from platformio.ini, model from ORB_BOARD)
 ```
 
 ## Conventions
@@ -56,7 +57,7 @@ make fw-monitor      # serial log at 115200 (needs a real tty; from scripts use 
 - Retained topics are state; non-retained topics are events. Never retain an event.
 - To forget an orb, publish zero-length retained payloads to all its retained topics.
 - Secrets never go in git. Use k8s Secrets and a gitignored `.env` for local runs.
-- Firmware: no `delay()` in the main loop, LVGL on one task, network on another, a queue between them. Big buffers in PSRAM. `-DORB_BOARD=143|175` picks the pin map; the orb in hand is the 1.43.
+- Firmware: no `delay()` in the main loop, LVGL on one task, network on another, a queue between them. Big buffers in PSRAM. `-DORB_BOARD=143|175` picks the pin map; the orb in hand is the 1.43. No LED in v1.
 
 ## Things that will bite
 
@@ -84,6 +85,8 @@ make fw-monitor      # serial log at 115200 (needs a real tty; from scripts use 
 - **LittleFS looks for a partition labelled `spiffs`.** A custom `partitions.csv` with any other label fails with "partition spiffs could not be found".
 - **`pio device monitor` needs a tty.** From a script, read the port with pyserial; toggling RTS resets the board (USB-JTAG/serial) so you get the boot log.
 - **A green sliver along one screen edge is the CO5300 column offset.** Both boards need `LCD_COL_OFFSET 6`; the unwritten GRAM columns show up as green on the glass.
+- **OTA can't change the partition table.** `partitions.csv` edits need `make fw-flash` over USB and wipe LittleFS (stickers/emoji re-sync, NVS survives). Everything else ships with `make fw-release`.
+- **Don't name a Makefile variable or sed pattern around `-DORB_FW_VERSION` loosely.** `fw-release` greps the version out of `platformio.ini`; keep the `-DORB_FW_VERSION=\"x.y.z\"` form.
 - **The CO5300 can't rotate.** Its MADCTL has only flip bits, so `setRotation` is useless and LVGL 9 doesn't rotate for you either; `flush_cb` does it (`ORB_ROTATION`, 90 on the 1.43).
 - **Don't name a pyserial helper `serial.py`.** Python imports the script itself instead of pyserial.
 - **`lv_image_cache_drop` isn't in `lvgl.h`.** Include `src/misc/cache/instance/lv_image_cache.h`. `lv_obj_remove_flag` wants a cast when OR-ing flags in C++.
