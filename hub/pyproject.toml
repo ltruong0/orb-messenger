@@ -1,6 +1,6 @@
 [project]
 name = "msg-hub"
-version = "0.4.2"
+version = "0.4.3"
 description = "Orb Messenger hub: REST + SSE for phones, MQTT to orbs, SQLite state, media pipeline"
 requires-python = ">=3.12"
 dependencies = [
