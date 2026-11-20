@@ -341,9 +341,15 @@ static void mood_timer_cb(lv_timer_t* t) {
 static void show_idle_moment(const char* key) {
   clear();
   set_state(St::Idle);
+  log_i("idle moment: %s", key);
   draw_mood(content, key, -25);
   if (!cfg_name.isEmpty()) label(content, cfg_name.c_str(), &lv_font_montserrat_20, GREY, 150);
-  anim_timer = lv_timer_create([](lv_timer_t*) { show_idle(); }, 5000, nullptr);
+  anim_timer = lv_timer_create(
+      [](lv_timer_t*) {
+        log_i("idle moment over");
+        show_idle();
+      },
+      5000, nullptr);
 }
 
 static void moment_timer_cb(lv_timer_t*) { show_idle_moment(MOOD_KEYS[random(0, MOOD_KEY_COUNT)]); }
@@ -550,8 +556,8 @@ static void draw_mood(lv_obj_t* parent, const char* key, int cy) {
     loop_anim(f, ex_x, -3, 3, 50);
   } else if (k == "hot") {
     lv_color_t c = lv_color_hex(0xFF8A5A);
-    part(f, -EYE_DX, EY + 10, EYE_W, 50, c, 25);
-    part(f, EYE_DX, EY + 10, EYE_W, 50, c, 25);
+    part(f, -EYE_DX, EY, EYE_W, EYE_H, c, 28);
+    part(f, EYE_DX, EY, EYE_W, EYE_H, c, 28);
     ring(f, 0, MY, 36, 44, 9, LV_RADIUS_CIRCLE, c);
     drop(f, -EYE_DX - 48, EY - 30);
     drop(f, EYE_DX + 46, EY - 5);
